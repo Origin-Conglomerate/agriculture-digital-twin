@@ -1,0 +1,203 @@
+import React, { useEffect, useState } from 'react';
+import { Card, CardHeader, CardBody, Typography, Button, Select, Option, Input } from "@material-tailwind/react";
+import { motion } from "framer-motion";
+import Alerts from './Alerts';
+import { GET, POST } from '../../utils/ApiHandler';
+import {
+    Dialog,
+    DialogHeader,
+    DialogBody,
+    DialogFooter,
+} from "@material-tailwind/react";
+// import { Modal } from '@material-tailwind/react'; // Import your modal component
+
+const IrrigationScheduling = () => {
+    const [pipelines, setPipelines] = useState([]);
+    const [selectedPipeline, setSelectedPipeline] = useState("");
+    const [scheduleType, setScheduleType] = useState("Interval Based");
+    const [days, setDays] = useState(0);
+    const [hours, setHours] = useState(0);
+    const [minutes, setMinutes] = useState(0);
+    const [sDays, setSDays] = useState(0);
+    const [sTime, setSTime] = useState("");
+    const [alertopen, setAlertOpen] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
+
+    const handleAlertOpen = () => setAlertOpen(!alertopen);
+
+    const handlePipelineSelect = (pipeline) => {
+        setSelectedPipeline(pipeline.name);
+        setScheduleType(pipeline.config.manner);
+        if (pipeline.config.manner === "Interval Based") {
+            setDays(pipeline.config.days);
+            setHours(pipeline.config.hours);
+            setMinutes(pipeline.config.minutes);
+        } else if (pipeline.config.manner === "Scheduled") {
+            setSDays(pipeline.config.sDays);
+            setSTime(pipeline.config.sTime);
+        }
+    };
+
+    const handleModifySchedule = async () => {
+        if (!selectedPipeline) {
+            setAlertMessage("Please select a pipeline");
+            setAlertOpen(true);
+            return;
+        }
+
+        const payload = {
+            pipelineName: selectedPipeline,
+            scheduleType,
+            days: scheduleType === "Interval Based" ? days : undefined,
+            hours,
+            minutes,
+            sDays: scheduleType === "Scheduled" ? sDays : undefined,
+            sTime: scheduleType === "Scheduled" ? sTime : undefined,
+        };
+
+        const resp = await POST(`${process.env.REACT_APP_API_URL}/api/v1/irrigation/pipeline-schedule`, payload);
+        if (resp) {
+            setAlertMessage("Schedule modified successfully");
+            getPipelines(); // Refresh the pipeline list
+        } else {
+            setAlertMessage("Failed to modify schedule");
+        }
+        setAlertOpen(true);
+    };
+
+    const getPipelines = async () => {
+        const resp = await GET(`${process.env.REACT_APP_API_URL}/api/v1/irrigation/profiles/pipelines`);
+        if (resp.success) {
+            setPipelines(resp.data.pipelines);
+        }
+    };
+
+    useEffect(() => {
+        getPipelines();
+    }, []);
+
+    const getButtonLabel = () => {
+        const pipeline = pipelines.find(p => p.name === selectedPipeline);
+        if (pipeline) {
+            const manner = pipeline.config.manner;
+            if (manner === "Continuous" && !pipeline.config.days && !pipeline.config.hours && !pipeline.config.minutes) {
+                return "Schedule";
+            } else if (manner === "Interval Based" && (days || hours || minutes)) {
+                return "Modify Schedule";
+            } else if (manner === "Scheduled" && (sDays || sTime)) {
+                return "Modify Schedule";
+            }
+        }
+        return "Schedule";
+    };
+
+    return (
+        <Card className="w-full max-w-[26rem] overflow-hidden">
+            <CardHeader
+                floated={false}
+                shadow={false}
+                color="transparent"
+                className="m-0 p-4 bg-gradient-to-br from-green-400 to-blue-500"
+            >
+                <Typography variant="h5" color="white" className="mb-2">
+                    Irrigation Scheduling
+                </Typography>
+            </CardHeader>
+            <CardBody className="text-center">
+                <div className="flex flex-col space-y-4">
+                    <Select
+                        label="Select Pipeline"
+                        value={selectedPipeline}
+                        color="blue"
+                    >
+                        {pipelines.map((pipeline) => (
+                            <Option key={pipeline.name} value={pipeline.name} onClick={() => handlePipelineSelect(pipeline)}>
+                                {pipeline.name} - {pipeline.config.manner}
+                                ({pipeline.config.manner === "Interval Based"
+                                    ? `${pipeline.config.days}d ${pipeline.config.hours}h ${pipeline.config.minutes}m`
+                                    : pipeline.config.manner === "Scheduled"
+                                        ? `${pipeline.config.sDays} at ${pipeline.config.sTime}`
+                                        : pipeline.config.manner === "Continuous"
+                                            ? "Continuous execution"
+                                            : "Unknown schedule type"})
+                            </Option>
+                        ))}
+                    </Select>
+
+                    <Select
+                        label="Schedule Type"
+                        value={scheduleType}
+                        onChange={(value) => setScheduleType(value)}
+                        color="blue"
+                    >
+                        <Option value="Continuous">Continuous</Option>
+                        <Option value="Interval Based">Interval</Option>
+                        <Option value="Scheduled">Scheduled</Option>
+                    </Select>
+
+                    {scheduleType === "Interval Based" && (
+                        <>
+                            <Input
+                                type="number"
+                                label="Days"
+                                value={days}
+                                onChange={(e) => setDays(parseInt(e.target.value))}
+                            />
+                            <Input
+                                type="number"
+                                label="Hours"
+                                value={hours}
+                                onChange={(e) => setHours(parseInt(e.target.value))}
+                            />
+                            <Input
+                                type="number"
+                                label="Minutes"
+                                value={minutes}
+                                onChange={(e) => setMinutes(parseInt(e.target.value))}
+                            />
+                        </>
+                    )}
+
+                    {scheduleType === "Scheduled" && (
+                        <>
+                            <Input
+                                label="Days"
+                                value={sDays}
+                                onChange={(e) => setSDays(e.target.value)}
+                            />
+                            <Typography>
+                               Start Time : {sTime}
+                            </Typography>
+                            <Input
+                                type="time"
+                                label="Edit Start Time"
+                                value={sTime}
+                                onChange={(e) => setSTime(e.target.value)}
+                            />
+                        </>
+                    )}
+
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button size="lg" color="blue" ripple={true} fullWidth={true} onClick={handleModifySchedule}>
+                            {getButtonLabel()}
+                        </Button>
+                    </motion.div>
+                </div>
+            </CardBody>
+
+            <Dialog open={alertopen} handler={handleAlertOpen}>
+                <DialogHeader>Irrigation Alert</DialogHeader>
+                <DialogBody>
+                    {alertMessage}
+                </DialogBody>
+                <DialogFooter>
+                    <Button variant="gradient" color="green" onClick={handleAlertOpen}>
+                        <span>Okay</span>
+                    </Button>
+                </DialogFooter>
+            </Dialog>
+        </Card>
+    );
+};
+
+export default IrrigationScheduling;

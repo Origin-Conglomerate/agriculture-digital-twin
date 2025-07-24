@@ -1,0 +1,230 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
+import {
+  Leaf,
+  Droplets,
+  Trees,
+  Battery,
+  Download,
+  BarChart3,
+  Package2Icon,
+  AlertCircle,
+  ArrowUpRight,
+  Activity
+} from 'lucide-react';
+
+// Simulated data hooks
+const useSustainabilityData = () => {
+  const [data, setData] = useState({
+    score: 85,
+    waterUsage: {
+      current: 75000,
+      target: 100000,
+      history: [
+        { month: 'Jan', usage: 82000 },
+        { month: 'Feb', usage: 78000 },
+        { month: 'Mar', usage: 75000 },
+      ]
+    },
+    biodiversity: {
+      speciesCount: 145,
+      habitatArea: 500,
+      conservation: 92
+    },
+    certifications: [
+      { name: 'ISO 14001', status: 'Certified', expiry: '2025' },
+      { name: 'Green Business', status: 'In Progress', expiry: 'N/A' }
+    ],
+    recommendations: [
+      { id: 1, title: 'Implement rainwater harvesting', impact: 'High', area: 'Water' },
+      { id: 2, title: 'Solar panel installation', impact: 'High', area: 'Energy' },
+      { id: 3, title: 'Native species planting', impact: 'Medium', area: 'Biodiversity' }
+    ]
+  });
+
+  useEffect(() => {
+    // Simulated data updates
+    const interval = setInterval(() => {
+      setData(prev => ({
+        ...prev,
+        score: Math.min(100, prev.score + Math.random() * 2 - 1),
+        waterUsage: {
+          ...prev.waterUsage,
+          current: prev.waterUsage.current - Math.random() * 1000
+        }
+      }));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return data;
+};
+
+// Score Card Component
+const ScoreCard = ({ score }) => (
+  <Card className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border-2 border-green-100/50 dark:border-blue-900/30">
+    <CardContent className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-green-800 dark:text-blue-300">
+          Sustainability Score
+        </h3>
+        <Badge 
+          variant={score > 80 ? "success" : "warning"}
+          className="bg-green-100 dark:bg-blue-900"
+        >
+          {score.toFixed(1)}%
+        </Badge>
+      </div>
+      <Progress value={score} className="h-2 bg-green-100 dark:bg-blue-900/30" />
+    </CardContent>
+  </Card>
+);
+
+// Water Usage Component
+const WaterUsage = ({ data }) => (
+  <Card className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border-2 border-green-100/50 dark:border-blue-900/30">
+    <CardContent className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-green-800 dark:text-blue-300">
+            Water Usage Analytics
+          </h3>
+          <p className="text-sm text-green-600 dark:text-blue-200">
+            {((data.current / data.target) * 100).toFixed(1)}% of target
+          </p>
+        </div>
+        <Droplets className="text-blue-500 dark:text-blue-400 h-8 w-8" />
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={data.history}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="month" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="usage" stroke="#3B82F6" />
+        </LineChart>
+      </ResponsiveContainer>
+    </CardContent>
+  </Card>
+);
+
+// Main Sustainability Component
+export default function Sustainability() {
+  const data = useSustainabilityData();
+  const [activeTab, setActiveTab] = useState('overview');
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-green-900 dark:text-white">
+            Sustainability Dashboard
+          </h1>
+          <p className="text-green-700 dark:text-blue-200">
+            Monitoring and optimizing environmental impact
+          </p>
+        </div>
+        <Button 
+          className="bg-green-600 hover:bg-green-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+          onClick={() => {/* Generate report logic */}}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Generate Report
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <ScoreCard score={data.score} />
+        <WaterUsage data={data.waterUsage} />
+        {/* Additional metric cards can be added here */}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="bg-green-50 dark:bg-gray-800">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="certifications">Certifications</TabsTrigger>
+          <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-6">
+          <Card className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl">
+            <CardContent className="p-6">
+              {/* Overview content */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="certifications" className="mt-6">
+          <Card className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {data.certifications.map((cert, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-green-50 dark:bg-gray-800 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <Package2Icon className="text-green-600 dark:text-blue-400" />
+                      <div>
+                        <h4 className="font-semibold text-green-800 dark:text-blue-300">
+                          {cert.name}
+                        </h4>
+                        <p className="text-sm text-green-600 dark:text-blue-200">
+                          Expires: {cert.expiry}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={cert.status === 'Certified' ? 'success' : 'warning'}>
+                      {cert.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recommendations" className="mt-6">
+          <Card className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {data.recommendations.map((rec) => (
+                  <div 
+                    key={rec.id}
+                    className="p-4 bg-green-50 dark:bg-gray-800 rounded-lg hover:bg-green-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-green-800 dark:text-blue-300">
+                        {rec.title}
+                      </h4>
+                      <Badge variant={rec.impact === 'High' ? 'success' : 'warning'}>
+                        {rec.impact} Impact
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-green-600 dark:text-blue-200 mt-2">
+                      Area: {rec.area}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

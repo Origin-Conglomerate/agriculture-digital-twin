@@ -1,0 +1,580 @@
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { Card } from "@/components/ui/card";
+import imageUrl from "@/assets/Irrigation/plotlayout.png";
+
+interface Metric {
+  label: string;
+  value: string;
+  icon: string;
+  unit?: string;
+  trend?: 'up' | 'down' | 'stable';
+  alertLevel?: 'normal' | 'warning' | 'critical';
+}
+
+const AR = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isARSupported, setIsARSupported] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState('');
+
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const plotMeshRef = useRef<THREE.Mesh | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const sessionRef = useRef<XRSession | null>(null);
+  const waterFlowRef = useRef<Array<{mesh: THREE.Mesh, start: THREE.Vector3, end: THREE.Vector3, progress: number}>>([]);
+  const metricsGroupRef = useRef<THREE.Group | null>(null);
+  const interactionManagerRef = useRef<THREE.Group | null>(null);
+
+  // Enhanced metrics with more agricultural data
+  const metrics: Metric[] = [
+    { label: 'Area', value: '24', unit: 'Acres', icon: '📏', trend: 'stable' },
+    { label: 'Soil Moisture', value: '35', unit: '%', icon: '💧', trend: 'down', alertLevel: 'warning' },
+    { label: 'Temperature', value: '26', unit: '°C', icon: '🌡️', trend: 'up' },
+    { label: 'Rainfall', value: '22', unit: 'mm', icon: '🌧️', trend: 'stable' },
+    { label: 'Crop Health', value: '92', unit: '%', icon: '🌱', trend: 'stable' },
+    { label: 'pH Level', value: '6.5', icon: '⚗️', trend: 'stable' },
+    { label: 'NPK Levels', value: '14-14-14', icon: '🧪', alertLevel: 'normal' },
+    { label: 'Yield Forecast', value: '4.2', unit: 'tons/acre', icon: '📊', trend: 'up' }
+  ];
+
+  // Pipe paths for irrigation system
+  const pipePaths = [
+    { start: [-0.1, 0.01, -0.19], end: [1.3, 0.01, -0.2] },
+    { start: [1.3, 0.01, -0.2], end: [1.2, 0.01, 3.4] },
+    { start: [1.2, 0.01, 3.4], end: [4.7, 0.01, 3.4] },
+    { start: [1.3, 0.01, 0.8], end: [4.22, 0.01, 0.8] },
+    { start: [-0.1, 0.01, -0.5], end: [-1.8, 0.01, -0.5] },
+    { start: [-1, 0.01, -0.5], end: [-1.3, 0.01, 3.3] },
+    { start: [-1, 0.01, -0.4], end: [-0.6, 0.01, -4.8] },
+    { start: [-1.8, 0.01, -0.5], end: [-2.1, 0.01, 3.3] },
+    { start: [-1.8, 0.01, -0.5], end: [-1.6, 0.01, -3.2] },
+    { start: [-0.8, 0.01, -3.1], end: [-3.8, 0.01, -3.2] },
+    { start: [-2.3, 0.01, -3.2], end: [-2.2, 0.01, -4.7] },
+    { start: [-3.8, 0.01, -3.2], end: [-3.5, 0.01, -4.9] },
+  ];
+
+  useEffect(() => {
+    checkARSupport();
+    initThreeJS();
+    return cleanup;
+  }, []);
+
+  const createWaterFlowSystem = () => {
+    const flowGroup = new THREE.Group();
+    
+    pipePaths.forEach(path => {
+      // Create pipe visualization
+      const material = new THREE.LineBasicMaterial({ color: 0x0088ff, linewidth: 2 });
+      const points = [
+        new THREE.Vector3(...path.start),
+        new THREE.Vector3(...path.end)
+      ];
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, material);
+      flowGroup.add(line);
+
+      // Create water particle
+      const flowGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+      const flowMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00aaff,
+        transparent: true,
+        opacity: 0.8,
+        emissive: 0x0044ff,
+        emissiveIntensity: 0.5,
+      });
+      
+      const particle = new THREE.Mesh(flowGeometry, flowMaterial);
+      particle.position.set(...path.start);
+      
+      waterFlowRef.current.push({
+        mesh: particle,
+        start: new THREE.Vector3(...path.start),
+        end: new THREE.Vector3(...path.end),
+        progress: 0
+      });
+      
+      flowGroup.add(particle);
+    });
+
+    sceneRef.current?.add(flowGroup);
+  };
+
+  const animateWaterFlow = () => {
+    const flowSpeed = 0.01;
+    waterFlowRef.current.forEach(flow => {
+      flow.progress += flowSpeed;
+      if (flow.progress >= 1) {
+        flow.progress = 0;
+        flow.mesh.position.copy(flow.start);
+      } else {
+        flow.mesh.position.lerpVectors(flow.start, flow.end, flow.progress);
+      }
+    });
+  };
+
+  const createMetricsInAR = () => {
+    const group = new THREE.Group();
+    group.position.set(0, 1.5, 0);
+    
+    metrics.forEach((metric, index) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+      const context = canvas.getContext('2d')!;
+      
+      // Enhanced metric panel design
+      context.fillStyle = '#1a1a1a';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Gradient border based on alert level
+      const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+      if (metric.alertLevel === 'warning') {
+        gradient.addColorStop(0, '#fbbf24');
+        gradient.addColorStop(1, '#d97706');
+      } else if (metric.alertLevel === 'critical') {
+        gradient.addColorStop(0, '#ef4444');
+        gradient.addColorStop(1, '#dc2626');
+      } else {
+        gradient.addColorStop(0, '#3b82f6');
+        gradient.addColorStop(1, '#2563eb');
+      }
+      
+      context.strokeStyle = gradient;
+      context.lineWidth = 8;
+      context.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+      
+      // Metric content
+      context.fillStyle = '#ffffff';
+      context.font = 'bold 48px Arial';
+      context.fillText(`${metric.icon} ${metric.label}`, 40, 80);
+      
+      context.font = '42px Arial';
+      const valueText = `${metric.value}${metric.unit ? ` ${metric.unit}` : ''}`;
+      context.fillText(valueText, 40, 160);
+      
+      // Trend indicator
+      if (metric.trend) {
+        const trendIcon = metric.trend === 'up' ? '↗️' : metric.trend === 'down' ? '↘️' : '→';
+        context.font = '36px Arial';
+        context.fillText(trendIcon, canvas.width - 80, 160);
+      }
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
+      
+      const geometry = new THREE.PlaneGeometry(0.8, 0.4);
+      const mesh = new THREE.Mesh(geometry, material);
+      
+      // Arrange metrics in a circular pattern
+      const radius = 1.2;
+      const angle = (index / metrics.length) * Math.PI * 2;
+      mesh.position.set(
+        Math.cos(angle) * radius,
+        index * 0.1, // Slight vertical offset
+        Math.sin(angle) * radius
+      );
+      
+      // Add interaction capabilities
+      mesh.userData = {
+        type: 'metric',
+        index,
+        draggable: true,
+        originalPosition: mesh.position.clone()
+      };
+      
+      group.add(mesh);
+    });
+    
+    metricsGroupRef.current = group;
+    sceneRef.current?.add(group);
+  };
+
+  const setupInteractions = () => {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedMetric: THREE.Mesh | null = null;
+    let isDragging = false;
+    
+    const onMouseDown = (event: MouseEvent) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      raycaster.setFromCamera(mouse, cameraRef.current!);
+      const intersects = raycaster.intersectObjects(metricsGroupRef.current!.children);
+      
+      if (intersects.length > 0 && intersects[0].object.userData.draggable) {
+        selectedMetric = intersects[0].object as THREE.Mesh;
+        isDragging = true;
+        controlsRef.current!.enabled = false;
+      }
+    };
+    
+    const onMouseMove = (event: MouseEvent) => {
+      if (isDragging && selectedMetric) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, cameraRef.current!);
+        const intersects = raycaster.intersectObject(plotMeshRef.current!);
+        
+        if (intersects.length > 0) {
+          selectedMetric.position.copy(intersects[0].point);
+          selectedMetric.position.y += 0.5; // Lift slightly above plot
+        }
+      }
+    };
+    
+    const onMouseUp = () => {
+      isDragging = false;
+      selectedMetric = null;
+      controlsRef.current!.enabled = true;
+    };
+    
+    // Touch events for mobile
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      onMouseDown(mouseEvent);
+    };
+    
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      onMouseMove(mouseEvent);
+    };
+    
+    const onTouchEnd = () => {
+      onMouseUp();
+    };
+    
+    // Add event listeners
+    const renderer = rendererRef.current!.domElement;
+    renderer.addEventListener('mousedown', onMouseDown);
+    renderer.addEventListener('mousemove', onMouseMove);
+    renderer.addEventListener('mouseup', onMouseUp);
+    renderer.addEventListener('touchstart', onTouchStart);
+    renderer.addEventListener('touchmove', onTouchMove);
+    renderer.addEventListener('touchend', onTouchEnd);
+    
+    // Cleanup function
+    return () => {
+      renderer.removeEventListener('mousedown', onMouseDown);
+      renderer.removeEventListener('mousemove', onMouseMove);
+      renderer.removeEventListener('mouseup', onMouseUp);
+      renderer.removeEventListener('touchstart', onTouchStart);
+      renderer.removeEventListener('touchmove', onTouchMove);
+      renderer.removeEventListener('touchend', onTouchEnd);
+    };
+  };
+
+  const initThreeJS = () => {
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.01,
+      1000
+    );
+    camera.position.set(0, 2, 2);
+    cameraRef.current = camera;
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      logarithmicDepthBuffer: true,
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    rendererRef.current = renderer;
+
+    containerRef.current?.appendChild(renderer.domElement);
+
+    // Enhanced plot layout with normal map for better depth perception
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(imageUrl, (texture) => {
+      const geometry = new THREE.PlaneGeometry(2, 2);
+      const material = new THREE.MeshStandardMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        roughness: 0.8,
+        metalness: 0.2,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      plotMeshRef.current = mesh;
+      scene.add(mesh);
+    });
+
+    // Enhanced lighting system
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 2, 1);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+  
+
+    const hemisphereLight = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.6);
+    scene.add(hemisphereLight);
+
+    // Initialize water flow system
+    createWaterFlowSystem();
+    
+    // Initialize metrics display
+    createMetricsInAR();
+
+    // Enhanced OrbitControls with improved touch support
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 1;
+    controls.maxDistance = 10;
+    controls.enablePan = true;
+    controls.panSpeed = 0.5;
+    controls.rotateSpeed = 0.5;
+    controls.zoomSpeed = 0.8;
+    controls.maxPolarAngle = Math.PI / 2; // Prevent camera going below ground
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
+    controlsRef.current = controls;
+
+    // Setup interactions
+    setupInteractions();
+
+    window.addEventListener('resize', handleResize);
+    animate();
+  };
+
+  const handleResize = () => {
+    if (cameraRef.current && rendererRef.current) {
+      cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+    }
+  };
+
+  const animate = () => {
+    if (!rendererRef.current) return;
+
+    const render = () => {
+      if (controlsRef.current && !sessionRef.current) {
+        controlsRef.current.update();
+      }
+      
+      // Animate water flow
+      animateWaterFlow();
+      
+      // Update metrics to face camera
+      if (metricsGroupRef.current && cameraRef.current) {
+        metricsGroupRef.current.children.forEach(child => {
+          child.lookAt(cameraRef.current!.position);
+        });
+      }
+      
+      rendererRef.current!.render(sceneRef.current!, cameraRef.current!);
+    };
+
+    rendererRef.current.setAnimationLoop(render);
+  };
+
+  const checkARSupport = async () => {
+    if ('xr' in navigator) {
+      try {
+        const supported = await navigator.xr.isSessionSupported('immersive-ar');
+        setIsARSupported(supported);
+      } catch (err: any) {
+        setError('Error checking AR support: ' + err.message);
+      }
+    } else {
+      setError('WebXR not available in your browser');
+    }
+  };
+
+  const startAR = async () => {
+    try {
+      const session = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test', 'local-floor', 'touch-selection'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.body }
+      });
+      
+      sessionRef.current = session;
+      await rendererRef.current!.xr.setSession(session);
+      
+      const referenceSpace = await session.requestReferenceSpace('local-floor');
+      const viewerSpace = await session.requestReferenceSpace('viewer');
+      const hitTestSource = await session.requestHitTestSource({
+        space: viewerSpace,
+      });
+
+      // Enhanced AR Session handling
+      session.addEventListener('end', () => {
+        hitTestSource.cancel();
+        sessionRef.current = null;
+        rendererRef.current!.xr.setSession(null);
+      });
+
+      let placedObject = false;
+      
+      session.addEventListener('select', () => {
+        // Handle selection events for interaction
+        if (placedObject) {
+          // Toggle metric visibility or trigger interactions
+          const raycaster = new THREE.Raycaster();
+          const xrCamera = renderer.xr.getCamera();
+          raycaster.setFromCamera({ x: 0, y: 0 }, xrCamera);
+          
+          const intersects = raycaster.intersectObjects(metricsGroupRef.current!.children);
+          if (intersects.length > 0) {
+            const metric = intersects[0].object;
+            // Handle metric interaction
+            metric.userData.selected = !metric.userData.selected;
+            updateMetricDisplay(metric);
+          }
+        }
+      });
+
+      // Enhanced AR placement and interaction
+      session.requestAnimationFrame(function onFrame(time, frame) {
+        if (!placedObject) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(referenceSpace);
+            
+            if (plotMeshRef.current && metricsGroupRef.current) {
+              // Place plot with proper scaling and orientation
+              plotMeshRef.current.position.copy(pose.transform.position);
+              plotMeshRef.current.quaternion.copy(pose.transform.orientation);
+              
+              // Position metrics group above plot
+              metricsGroupRef.current.position.copy(pose.transform.position);
+              metricsGroupRef.current.position.y += 1;
+              
+              // Position water flow system
+              waterFlowRef.current.forEach(flow => {
+                flow.mesh.position.copy(pose.transform.position);
+                flow.mesh.quaternion.copy(pose.transform.orientation);
+              });
+              
+              placedObject = true;
+              setInfo('Plot placed successfully! Use gestures to interact.');
+            }
+          }
+        }
+        
+        session.requestAnimationFrame(onFrame);
+      });
+
+    } catch (err: any) {
+      setError('Error starting AR session: ' + err.message);
+    }
+  };
+
+  const updateMetricDisplay = (metric: THREE.Object3D) => {
+    if (metric.userData.selected) {
+      // Show detailed view of the metric
+      const detailsDiv = document.createElement('div');
+      detailsDiv.className = 'metric-details';
+      detailsDiv.style.position = 'fixed';
+      detailsDiv.style.top = '20px';
+      detailsDiv.style.left = '20px';
+      detailsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      detailsDiv.style.color = 'white';
+      detailsDiv.style.padding = '20px';
+      detailsDiv.style.borderRadius = '10px';
+      detailsDiv.innerHTML = `
+        <h3>${metrics[metric.userData.index].label}</h3>
+        <p>Current: ${metrics[metric.userData.index].value}${metrics[metric.userData.index].unit || ''}</p>
+        <p>Trend: ${metrics[metric.userData.index].trend}</p>
+        <p>Status: ${metrics[metric.userData.index].alertLevel || 'normal'}</p>
+      `;
+      document.body.appendChild(detailsDiv);
+      
+      setTimeout(() => {
+        document.body.removeChild(detailsDiv);
+        metric.userData.selected = false;
+      }, 3000);
+    }
+  };
+
+  const cleanup = () => {
+    if (sessionRef.current) {
+      sessionRef.current.end();
+    }
+    if (rendererRef.current) {
+      rendererRef.current.dispose();
+      rendererRef.current.setAnimationLoop(null);
+    }
+    if (containerRef.current && rendererRef.current) {
+      containerRef.current.removeChild(rendererRef.current.domElement);
+    }
+    window.removeEventListener('resize', handleResize);
+  };
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">AgriTwin AR Experience</h1>
+          <p className="text-xl mb-6 text-gray-600 dark:text-gray-300">
+            Experience your agricultural plot in immersive 3D visualization
+          </p>
+          <p className="text-lg mb-8 text-gray-600 dark:text-gray-300">
+            Use gestures to interact with metrics and visualize real-time data
+          </p>
+
+          {isARSupported && (
+            <button
+              onClick={startAR}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg 
+                       transition duration-200 ease-in-out transform hover:scale-105"
+            >
+              Launch AR Experience
+            </button>
+          )}
+
+          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            ⚠️ AR mode requires ARCore (Android) or ARKit (iOS) support
+          </div>
+        </div>
+
+        <div ref={containerRef} className="w-full h-[calc(100vh-400px)] min-h-[400px] relative rounded-lg overflow-hidden" />
+        
+        {error && (
+          <div className="fixed top-4 left-0 right-0 mx-auto max-w-md text-center bg-red-500 text-white px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {info && (
+          <div className="fixed top-4 left-0 right-0 mx-auto max-w-md text-center bg-blue-500 text-white px-4 py-2 rounded">
+            {info}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AR;

@@ -1,0 +1,355 @@
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { Card } from "@/components/ui/card";
+import imageUrl from "@/assets/Irrigation/plotlayout.png";
+
+const AR = () => {
+  const containerRef = useRef(null);
+  const [isARSupported, setIsARSupported] = useState(false);
+  const [error, setError] = useState(null);
+  const [info, setInfo] = useState('');
+
+  const sceneRef = useRef(null);
+  const cameraRef = useRef(null);
+  const rendererRef = useRef(null);
+  const plotMeshRef = useRef(null);
+  const controlsRef = useRef(null);
+  const sessionRef = useRef(null);
+  const waterDropletsRef = useRef([]);
+  const metricsGroupRef = useRef(null);
+
+  const metrics = [
+    { label: 'Area', value: '24 Acres', icon: '📏' },
+    { label: 'Irrigation', value: 'In Progress', icon: '💧' },
+    { label: 'Temperature', value: '26°C', icon: '🌡️' },
+    { label: 'Rainfall', value: '22 mm', icon: '🌧️' },
+  ];
+
+  useEffect(() => {
+    checkARSupport();
+    initThreeJS();
+    return cleanup;
+  }, []);
+
+  const createMetricsInAR = () => {
+    const group = new THREE.Group();
+    group.position.set(0, 1.5, 0); // Position above plot layout
+    
+    metrics.forEach((metric, index) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 128;
+      const context = canvas.getContext('2d');
+      
+      // Draw metric panel
+      context.fillStyle = '#1a1a1a';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = '#3b82f6';
+      context.lineWidth = 4;
+      context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+      
+      // Draw text
+      context.fillStyle = '#ffffff';
+      context.font = 'bold 24px Arial';
+      context.fillText(metric.icon + ' ' + metric.label, 20, 40);
+      context.font = '24px Arial';
+      context.fillText(metric.value, 20, 80);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
+      
+      const geometry = new THREE.PlaneGeometry(0.5, 0.25);
+      const mesh = new THREE.Mesh(geometry, material);
+      
+      // Arrange metrics horizontally above plot
+      mesh.position.set(index * 0.6 - 0.9, 0, 0);
+      group.add(mesh);
+    });
+    
+    metricsGroupRef.current = group;
+    sceneRef.current.add(group);
+  };
+
+  const createWaterDroplets = () => {
+    // Clear existing droplets
+    waterDropletsRef.current.forEach(droplet => {
+      sceneRef.current.remove(droplet.mesh);
+    });
+    waterDropletsRef.current = [];
+
+    const dropletCount = 50; // Increased number of droplets
+    for (let i = 0; i < dropletCount; i++) {
+      const geometry = new THREE.SphereGeometry(0.01, 8, 8); // Smaller droplets
+      const material = new THREE.MeshPhongMaterial({
+        color: 0x00aaff,
+        transparent: true,
+        opacity: 0.8,
+        emissive: 0x0044ff,
+        emissiveIntensity: 0.5,
+      });
+      
+      const droplet = new THREE.Mesh(geometry, material);
+      // Distribute droplets across plot width
+      droplet.position.set(
+        Math.random() * 0.8 - 0.4, // x: spread across plot
+        0.5, // y: start above plot
+        Math.random() * 0.1 - 0.05 // z: slight depth variation
+      );
+      
+      sceneRef.current.add(droplet);
+      waterDropletsRef.current.push({
+        mesh: droplet,
+        speed: 0.005 + Math.random() * 0.005,
+        startX: droplet.position.x,
+      });
+    }
+  };
+
+  const animateWaterDroplets = () => {
+    waterDropletsRef.current.forEach(droplet => {
+      droplet.mesh.position.y -= droplet.speed;
+      
+      // Add slight horizontal movement
+      droplet.mesh.position.x = droplet.startX + Math.sin(Date.now() * 0.001 + droplet.startX) * 0.02;
+      
+      // Reset position when droplet reaches bottom
+      if (droplet.mesh.position.y < -0.5) {
+        droplet.mesh.position.y = 0.5;
+      }
+    });
+  };
+
+  const checkARSupport = async () => {
+    if ('xr' in navigator) {
+      try {
+        const supported = await navigator.xr.isSessionSupported('immersive-ar');
+        setIsARSupported(supported);
+      } catch (err) {
+        setError('Error checking AR support: ' + err.message);
+      }
+    } else {
+      setError('WebXR not available in your browser');
+    }
+  };
+
+  const initThreeJS = () => {
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.01, // Reduced near plane for better AR
+      1000
+    );
+    camera.position.z = 2;
+    cameraRef.current = camera;
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      logarithmicDepthBuffer: true, // Better AR depth handling
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    rendererRef.current = renderer;
+
+    containerRef.current.appendChild(renderer.domElement);
+
+    // Load plot layout with adjusted size
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(imageUrl, (texture) => {
+      const geometry = new THREE.PlaneGeometry(1, 1); // Smaller base size
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      plotMeshRef.current = mesh;
+      scene.add(mesh);
+    });
+
+    // Enhanced lighting for better visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    createWaterDroplets();
+    createMetricsInAR();
+
+    // Enhanced OrbitControls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 0.5;
+    controls.maxDistance = 4;
+    controls.enablePan = true;
+    controls.panSpeed = 0.5;
+    controls.rotateSpeed = 0.5;
+    controls.zoomSpeed = 0.5;
+    controlsRef.current = controls;
+
+    window.addEventListener('resize', handleResize);
+    animate();
+  };
+
+  const handleResize = () => {
+    if (cameraRef.current && rendererRef.current) {
+      cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+    }
+  };
+
+  const animate = () => {
+    if (!rendererRef.current) return;
+
+    const render = () => {
+      if (controlsRef.current && !sessionRef.current) {
+        controlsRef.current.update();
+      }
+      animateWaterDroplets();
+      
+      // Update metrics orientation to face camera
+      if (metricsGroupRef.current && cameraRef.current) {
+        metricsGroupRef.current.quaternion.copy(cameraRef.current.quaternion);
+      }
+      
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+    };
+
+    rendererRef.current.setAnimationLoop(render);
+  };
+
+  const cleanup = () => {
+    if (sessionRef.current) {
+      sessionRef.current.end();
+    }
+    if (rendererRef.current) {
+      rendererRef.current.dispose();
+      rendererRef.current.setAnimationLoop(null);
+    }
+    if (containerRef.current && rendererRef.current) {
+      containerRef.current.removeChild(rendererRef.current.domElement);
+    }
+    window.removeEventListener('resize', handleResize);
+  };
+
+  const startAR = async () => {
+    try {
+      const session = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test', 'local-floor'],
+      });
+      sessionRef.current = session;
+
+      await rendererRef.current.xr.setSession(session);
+      
+      const referenceSpace = await session.requestReferenceSpace('local-floor');
+      const viewerSpace = await session.requestReferenceSpace('viewer');
+      const hitTestSource = await session.requestHitTestSource({
+        space: viewerSpace,
+      });
+
+      // AR Session frame handling
+      session.addEventListener('end', () => {
+        hitTestSource.cancel();
+        sessionRef.current = null;
+        rendererRef.current.xr.setSession(null);
+      });
+
+      let placedObject = false;
+      
+      rendererRef.current.xr.addEventListener('sessionstart', () => {
+        // Reset position when entering AR
+        if (plotMeshRef.current) {
+          plotMeshRef.current.position.set(0, 0, -1);
+          plotMeshRef.current.scale.set(1, 1, 1);
+        }
+      });
+
+      // Handle AR placement and interaction
+      session.requestAnimationFrame(function onFrame(time, frame) {
+        if (!placedObject) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(referenceSpace);
+            
+            if (plotMeshRef.current && metricsGroupRef.current) {
+              plotMeshRef.current.position.copy(pose.transform.position);
+              plotMeshRef.current.quaternion.copy(pose.transform.orientation);
+              
+              // Position metrics group above plot
+              metricsGroupRef.current.position.copy(pose.transform.position);
+              metricsGroupRef.current.position.y += 0.5; // Adjust height as needed
+              
+              placedObject = true;
+            }
+          }
+        }
+        
+        session.requestAnimationFrame(onFrame);
+      });
+
+    } catch (err) {
+      setError('Error starting AR session: ' + err.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Augmented Reality</h1>
+          <p className="text-xl mb-6 text-gray-600 dark:text-gray-300">
+            Experience your agricultural plot in immersive 3D visualization
+          </p>
+          <p className="text-lg mb-8 text-gray-600 dark:text-gray-300">
+            Our AR technology enables you to walk through your plot virtually,
+            visualize irrigation systems, and monitor key metrics in real-time.
+          </p>
+
+          {isARSupported && (
+            <button
+              onClick={startAR}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg 
+                       transition duration-200 ease-in-out transform hover:scale-105"
+            >
+              Start AR
+            </button>
+          )}
+
+          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            ⚠️ AR mode works only on mobile devices with ARCore (Android) or ARKit (iOS) support
+          </div>
+        </div>
+
+        <div ref={containerRef} className="w-full h-[calc(100vh-400px)] min-h-[400px] relative rounded-lg overflow-hidden" />
+        
+        {error && (
+          <div className="absolute top-4 left-0 right-0 mx-auto text-center bg-red-500 text-white px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+        {info && (
+          <div className="absolute top-4 left-0 right-0 mx-auto text-center bg-blue-500 text-white px-4 py-2 rounded">
+            {info}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AR;

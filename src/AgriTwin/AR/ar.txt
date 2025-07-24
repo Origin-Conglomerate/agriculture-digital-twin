@@ -1,0 +1,240 @@
+// ARViewer.jsx
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import imageUrl from "@/assets/Irrigation/plotlayout.png"
+
+const AR = () => {
+  const containerRef = useRef(null);
+  const [isARSupported, setIsARSupported] = useState(false);
+  const [error, setError] = useState(null);
+  const [info, setInfo] = useState('');
+
+  // Refs to hold Three.js instances
+  const sceneRef = useRef(null);
+  const cameraRef = useRef(null);
+  const rendererRef = useRef(null);
+  const meshRef = useRef(null);
+  const controlsRef = useRef(null);
+  const sessionRef = useRef(null);
+
+  useEffect(() => {
+    checkARSupport();
+    initThreeJS();
+    return cleanup;
+  }, []);
+
+  const checkARSupport = async () => {
+    if ('xr' in navigator) {
+      try {
+        const supported = await navigator.xr.isSessionSupported('immersive-ar');
+        setIsARSupported(supported);
+      } catch (err) {
+        setError('Error checking AR support: ' + err.message);
+      }
+    } else {
+      setError('WebXR not available in your browser');
+    }
+  };
+
+  const initThreeJS = () => {
+    // Scene setup
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
+    // Camera setup
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.z = 5;
+    cameraRef.current = camera;
+
+    // Renderer setup
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    rendererRef.current = renderer;
+
+    // Add renderer to DOM
+    containerRef.current.appendChild(renderer.domElement);
+
+    // Load image texture and create mesh
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(imageUrl, (texture) => {
+      const geometry = new THREE.PlaneGeometry(2, 2); // Adjust size as needed
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      meshRef.current = mesh;
+      scene.add(mesh);
+    });
+
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(0, 1, 0);
+    scene.add(directionalLight);
+
+    // Add OrbitControls for non-AR interaction
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.enablePan = true;
+    controls.enableRotate = true;
+    controlsRef.current = controls;
+
+    // Handle window resize
+    const handleResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Start animation loop
+    animate();
+  };
+
+  const handleResize = () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  };
+
+  const animate = () => {
+    if (!rendererRef.current) return;
+
+    const render = () => {
+      if (controlsRef.current) {
+        controlsRef.current.update();
+      }
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+    };
+
+    rendererRef.current.setAnimationLoop(render);
+  };
+
+  const cleanup = () => {
+    if (sessionRef.current) {
+      sessionRef.current.end();
+    }
+    if (rendererRef.current) {
+      rendererRef.current.dispose();
+      rendererRef.current.setAnimationLoop(null);
+    }
+    if (containerRef.current && rendererRef.current) {
+      containerRef.current.removeChild(rendererRef.current.domElement);
+    }
+    window.removeEventListener('resize',handleResize );
+  };
+
+  const startAR = async () => {
+    try {
+      const session = await navigator.xr.requestSession('immersive-ar', {
+        optionalFeatures: ['bounded-floor', 'hit-test', 'local-floor', 'viewer'],
+      });
+      sessionRef.current = session;
+
+      // Set up session
+      await rendererRef.current.xr.setSession(session);
+
+      // Try different reference spaces
+      const referenceSpaceTypes = ['local', 'local-floor', 'viewer', 'unbounded'];
+      let referenceSpace = null;
+
+      for (const spaceType of referenceSpaceTypes) {
+        try {
+          referenceSpace = await session.requestReferenceSpace(spaceType);
+          setInfo(`Using ${spaceType} reference space`);
+          break;
+        } catch (e) {
+          console.log(`Failed to request ${spaceType} reference space`);
+        }
+      }
+
+      if (!referenceSpace) {
+        throw new Error('No supported reference space found');
+      }
+
+      // Handle AR session end
+      session.addEventListener('end', () => {
+        setInfo('AR session ended');
+        sessionRef.current = null;
+        rendererRef.current.xr.setSession(null);
+      });
+
+      // Add AR-specific controls
+      const controller = rendererRef.current.xr.getController(0);
+      controller.addEventListener('select', onSelect);
+      sceneRef.current.add(controller);
+
+    } catch (err) {
+      setError('Error starting AR session: ' + err.message);
+    }
+  };
+
+  // Handle AR selection events
+  const onSelect = () => {
+    if (meshRef.current) {
+      // Add interaction logic here
+      // For example, toggle rotation
+      meshRef.current.rotation.y += Math.PI / 4;
+    }
+  };
+
+  return (
+    <div className="ar-viewer">
+      <div ref={containerRef} style={{ width: '100vw', height: '100vh' }} />
+      {error && <div className="error">{error}</div>}
+      {info && <div className="info">{info}</div>}
+      {isARSupported && (
+        <button
+          onClick={startAR}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            padding: '12px 24px',
+            fontSize: '1.2em',
+            cursor: 'pointer',
+          }}
+        >
+          Start AR
+        </button>
+      )}
+      <style>{`
+        .ar-viewer {
+          position: relative;
+          width: 100vw;
+          height: 100vh;
+        }
+        .error, .info {
+          position: absolute;
+          top: 10px;
+          width: 100%;
+          text-align: center;
+          background: rgba(0,0,0,0.5);
+          color: white;
+          padding: 5px;
+        }
+        .error {
+          background: rgba(255,0,0,0.5);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default AR;

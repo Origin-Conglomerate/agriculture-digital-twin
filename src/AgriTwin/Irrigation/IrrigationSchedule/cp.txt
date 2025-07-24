@@ -1,0 +1,292 @@
+import React, { useEffect, useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { motion, AnimatePresence } from "framer-motion"
+import { 
+  DropletIcon, 
+  StopCircle, 
+  PlayCircle, 
+  Droplet, 
+  Clock, 
+  AlertCircle,
+  Settings2,
+  Activity
+} from "lucide-react"
+import { GET, POST } from '@/utils/ApiHandler'
+
+const ControlPanel = () => {
+  const [valves, setValves] = useState([])
+  const [selectedValve, setSelectedValve] = useState(null)
+  const [method, setMethod] = useState("Time-based")
+  const [hours, setHours] = useState(0)
+  const [minutes, setMinutes] = useState(0)
+  const [volume, setVolume] = useState(0)
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
+  const [valveStatus, setValveStatus] = useState("No Valve Selected")
+
+  // ... existing fetch and handlers code remains the same ...
+  const getValves = async () => {
+    const resp = await GET(`${import.meta.env.VITE_API_URL}/api/v1/irrigation/profiles/valves`)
+    if (resp.success) {
+      setValves(resp.data.valves)
+    }
+  }
+
+  useEffect(() => {
+    getValves()
+  }, [])
+
+  const handleValveSelect = (valve) => {
+    setSelectedValve(valve)
+    setMethod(valve.config.method || "Time-based")
+    setHours(valve.config.hours || 0)
+    setMinutes(valve.config.minutes || 0)
+    setVolume(valve.config.volume || 0)
+    updateValveStatus(valve)
+  }
+
+  const updateValveStatus = (valve) => {
+    if (valve.config.method === "Time-based") {
+      setValveStatus(valve.config.hours > 0 || valve.config.minutes > 0 ? "Running" : "Stopped")
+    } else if (valve.config.method === "Volume-based") {
+      setValveStatus(valve.config.volume > 0 ? "Running" : "Stopped")
+    }
+  }
+
+  const handleStartIrrigation = async () => {
+    if (!selectedValve) {
+      handleAlert("Please select a valve")
+      return
+    }
+    
+    const payload = {
+      valveName: selectedValve.name,
+      method,
+      hours: method === "Time-based" ? hours : 0,
+      minutes: method === "Time-based" ? minutes : 0,
+      volume: method === "Volume-based" ? volume : 0,
+    }
+    
+    const resp = await POST(`${import.meta.env.VITE_API_URL}/api/v1/irrigation/modify-valve`, payload)
+    handleAlert(resp ? "Valve Config Modified Successfully" : "Failed to Modify Config")
+    
+    if (resp) {
+      await getValves()
+      updateValveStatus(selectedValve)
+    }
+  }
+
+  const handleStopIrrigation = async () => {
+    if (!selectedValve) {
+      handleAlert("Please select a valve")
+      return
+    }
+    
+    const payload = { valveName: selectedValve.name }
+    const resp = await POST(`${import.meta.env.VITE_API_URL}/api/v1/irrigation/stop-valve`, payload)
+    
+    handleAlert(resp.success ? "Valve Stopped Successfully" : "Failed to Stop Irrigation")
+    
+    if (resp.success) {
+      await getValves()
+      updateValveStatus(selectedValve)
+    }
+  }
+
+  const handleAlert = (message) => {
+    setAlertMessage(message)
+    setAlertOpen(true)
+  }
+
+  const isValveRunning = valveStatus === "Running"
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border-2 border-green-100/50 dark:border-blue-900/30 rounded-2xl shadow-2xl hover:shadow-green-100/50 transition-all duration-300 ease-in-out">
+      <CardHeader className="bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/50 dark:to-blue-900/50 p-6 rounded-t-2xl">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-2xl font-bold text-green-900 dark:text-white flex items-center gap-3">
+              <Settings2 className="text-green-600 dark:text-blue-400" />
+              Irrigation Control Center
+            </CardTitle>
+            <CardDescription className="text-green-700 dark:text-blue-200">
+              Smart valve management and monitoring system
+            </CardDescription>
+          </div>
+          <Badge 
+            variant={isValveRunning ? "default" : "secondary"}
+            className="bg-white/30 dark:bg-black/30 flex items-center gap-2"
+          >
+            {isValveRunning ? (
+              <Activity className="w-4 h-4 text-green-500" />
+            ) : (
+              <StopCircle className="w-4 h-4 text-red-500" />
+            )}
+            {valveStatus}
+          </Badge>
+        </div>
+      </CardHeader>
+        
+      <CardContent className="p-6 space-y-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select onValueChange={(value) => {
+              const selectedValve = valves.find(valve => valve.name === value)
+              handleValveSelect(selectedValve)
+            }}>
+              <SelectTrigger className="w-full bg-white/50 dark:bg-gray-800/50 border-green-100 dark:border-blue-900/50">
+                <SelectValue placeholder="Select Valve" />
+              </SelectTrigger>
+              <SelectContent>
+                {valves.map((valve) => (
+                  <SelectItem key={valve.name} value={valve.name} className="flex items-center gap-2">
+                    <DropletIcon className="w-4 h-4 text-green-600 dark:text-blue-400" />
+                    <span>{valve.name} - {valve.config.method}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="w-full bg-white/50 dark:bg-gray-800/50 border-green-100 dark:border-blue-900/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Time-based" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-green-600 dark:text-blue-400" />
+                  Time-based
+                </SelectItem>
+                <SelectItem value="Volume-based" className="flex items-center gap-2">
+                  <Droplet className="w-4 h-4 text-green-600 dark:text-blue-400" />
+                  Volume-based
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={method}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg border border-green-100/50 dark:border-blue-900/50"
+            >
+              {method === "Time-based" ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-green-700 dark:text-blue-200">Hours</label>
+                    <Input 
+                      type="number" 
+                      placeholder="Hours" 
+                      value={hours} 
+                      onChange={(e) => setHours(Number(e.target.value))}
+                      className="bg-white/70 dark:bg-gray-900/70 border-green-100 dark:border-blue-900/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-green-700 dark:text-blue-200">Minutes</label>
+                    <Input 
+                      type="number" 
+                      placeholder="Minutes" 
+                      value={minutes} 
+                      onChange={(e) => setMinutes(Number(e.target.value))}
+                      className="bg-white/70 dark:bg-gray-900/70 border-green-100 dark:border-blue-900/50"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm text-green-700 dark:text-blue-200">Volume (liters)</label>
+                  <Input 
+                    type="number" 
+                    placeholder="Volume (liters)" 
+                    value={volume} 
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    className="bg-white/70 dark:bg-gray-900/70 border-green-100 dark:border-blue-900/50"
+                  />
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <motion.div 
+              whileHover={{ scale: 1.02 }} 
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button 
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 dark:from-blue-600 dark:to-blue-700 hover:from-green-600 hover:to-green-700 dark:hover:from-blue-700 dark:hover:to-blue-800 text-white" 
+                onClick={isValveRunning ? handleStartIrrigation : handleStartIrrigation}
+              >
+                <PlayCircle className="mr-2 w-5 h-5" />
+                {isValveRunning ? "Modify Config" : "Start Irrigation"}
+              </Button>
+            </motion.div>
+
+            <motion.div 
+              whileHover={{ scale: 1.02 }} 
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button 
+                variant="outline" 
+                className="w-full border-2 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20" 
+                onClick={handleStopIrrigation}
+              >
+                <StopCircle className="mr-2 w-5 h-5 text-red-500" />
+                Stop Irrigation
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
+      </CardContent>
+
+      <Dialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <DialogContent className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-2 border-green-100/50 dark:border-blue-900/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-green-900 dark:text-white">
+              <AlertCircle className="mr-2 w-5 h-5 text-yellow-500" />
+              Irrigation Alert
+            </DialogTitle>
+            <DialogDescription className="text-green-700 dark:text-blue-200">
+              {alertMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              onClick={() => setAlertOpen(false)}
+              className="bg-gradient-to-r from-green-500 to-green-600 dark:from-blue-600 dark:to-blue-700"
+            >
+              Okay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  )
+}
+
+export default ControlPanel
