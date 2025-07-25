@@ -52,6 +52,8 @@ import LandScape from './AgriTwin/Landscape/Landscape';
 import Marketplace from './AgriTwin/Marketplace/Marketplace';
 import Reports from './AgriTwin/Reports/Reports';
 import Livestock from './AgriTwin/Livestock/Livestock';
+import AgenticAI from './AgriTwin/AgenticAI/AgenticAI';
+import LogMonitor from './AgriTwin/LogMonitor/LogMonitor';
 
 
 
@@ -61,6 +63,8 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="agentic-ai" element={<AgenticAI />} />
+          <Route path="log-monitor" element={<LogMonitor />} />
           <Route path="surveillancehub" element={<SurveillanceHub />} />
           <Route path="statistics" element={<TenantAnalytics />} />
           {/* <Route path="reports" element={tenantId=="MYSCHMBN04" ? <Reports04 /> : <Reports05 />} />
