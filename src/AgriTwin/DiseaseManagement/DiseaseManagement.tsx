@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,8 +22,8 @@ import {
   Activity,
   PieChart
 } from 'lucide-react';
-import { POST } from '@/utils/ApiHandler'
 import pesticide from "@/assets/DiseaseManagement/pesticide.jpeg"
+import bananaDisease from "@/assets/panama.jpeg"  // Using an existing image from assets
 
 const useDiseaseHistory = () => {
   const [history, setHistory] = useState<any[]>([]);
@@ -38,12 +37,10 @@ const useDiseaseHistory = () => {
 
 export default function DiseaseManagement() {
   const { token } = useSelector((state: any) => state.login);
-  const [isDragging, setIsDragging] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [alert, setAlert] = useState<{ show: boolean; message: string; variant: 'default' | 'destructive' }>({ show: false, message: '', variant: 'default' });
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imagePreview, setImagePreview] = useState(bananaDisease);
   const [isPredicting, setIsPredicting] = useState(false);
   const [prediction, setPrediction] = useState('');
   const [diseaseDescription, setDiseaseDescription] = useState('');
@@ -71,60 +68,12 @@ export default function DiseaseManagement() {
   const [treatmentTimeline, setTreatmentTimeline] = useState<TreatmentStep[]>([]);
 
   // Drag and drop handlers remain unchanged
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      handleFileInput(droppedFile);
-    }
-  }, []);
-
-  const handleFileInput = (selectedFile: File) => {
-    if (selectedFile) {
-      setFile(selectedFile);
-      setImagePreview(URL.createObjectURL(selectedFile));
-      setIsPredicting(true);
-      setAlert({ show: false, message: '', variant: 'default' });
-      setShowSolutions(false);
-    }
-  };
-
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files ? e.target.files[0] : null;
-    if (selectedFile) {
-      handleFileInput(selectedFile);
-    }
-  }, []);
-
-  const handleUploadClick = () => {
-    document.getElementById('file-upload')?.click();
-  };
-
   const handlePredictClick = () => {
-    if (file) {
-      handleFile(file);
-    } else {
-      setAlert({
-        show: true,
-        message: 'Please select a file to upload.',
-        variant: 'destructive'
-      });
-    }
+    handleFile();
   };
 
-  // Prediction handler remains unchanged
-  const handleFile = async (file: File) => {
+  // Prediction handler with simulated data
+  const handleFile = async () => {
     setLoading(true);
     setAlert({
       show: true,
@@ -132,66 +81,69 @@ export default function DiseaseManagement() {
       variant: 'default'
     });
 
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/dm/v1/disease-management`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          const { loaded, total } = progressEvent;
-          if (total > 0) {
-            setUploadProgress(Math.round((loaded * 100) / total));
-          }
-        },
-      });
-
-      setPrediction(response.data[0]);
-      setConfidenceScore(Math.random() * 20 + 80);
-      
-      // const body = { prompt: `What is ${response.data[0]}` };
-      // const descriptionResponse = await POST(`${import.meta.env.VITE_API_URL}/api/v1/kiaanagrowgpt`, body, token);
-      setDiseaseDescription("");
-
-      setPesticideRecommendation({
-        name: "EcoGuard Plus",
-        description: "An eco-friendly pesticide effective against a wide range of plant diseases.",
-        formula: "N-P-K 5-5-5",
-        image: pesticide,
-        effectiveness: 92,
-        ecoRating: 95,
-        applicationMethod: "Foliar spray",
-        safetyPeriod: "48 hours"
-      });
-
-      setTreatmentTimeline([
-        { day: 1, action: "Initial pesticide application" },
-        { day: 7, action: "Monitor plant response" },
-        { day: 14, action: "Second application if needed" },
-        { day: 21, action: "Final assessment" }
-      ]);
-
-      setShowSolutions(true);
-      addToHistory({
-        disease: response.data[0],
-        date: new Date(),
-        severity: "Medium",
-        treatment: "EcoGuard Plus"
-      });
-
-    } catch (error) {
-      setAlert({
-        show: true,
-        message: 'Failed to process the image. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-      setUploadProgress(0);
+    // Simulate upload progress
+    for (let progress = 0; progress <= 100; progress += 20) {
+      setUploadProgress(progress);
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
+
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Hardcoded simulation for Banana Panama disease
+    setPrediction("Banana Panama Disease");
+    setConfidenceScore(92.5);
+    
+    setDiseaseDescription("Banana Panama disease is a devastating fungal infection caused by Fusarium oxysporum f.sp. cubense. It affects banana plants, causing wilting, yellowing of leaves, and eventual plant death. This disease is particularly dangerous as it can completely destroy banana crops.");
+
+    setPesticideRecommendation({
+      name: "FusaGuard Pro",
+      description: "A specialized fungicide targeting Fusarium infections in banana plantations, with enhanced soil penetration and systemic protection.",
+      formula: "Azoxystrobin 22.9%, Tebuconazole 14.3%",
+      image: pesticide,
+      effectiveness: 88,
+      ecoRating: 75,
+      applicationMethod: "Soil drench and foliar spray",
+      safetyPeriod: "72 hours"
+    });
+
+    setTreatmentTimeline([
+      { day: 1, action: "Initial fungicide application" },
+      { day: 7, action: "Soil treatment and root zone management" },
+      { day: 14, action: "Secondary fungicide application" },
+      { day: 21, action: "Comprehensive plant health assessment" },
+      { day: 30, action: "Quarantine and soil sterilization" }
+    ]);
+
+    setShowSolutions(true);
+    addToHistory({
+      disease: "Banana Panama Disease",
+      date: new Date(),
+      severity: "High",
+      treatment: "FusaGuard Pro"
+    });
+
+    setLoading(false);
+    setUploadProgress(0);
+    setIsPredicting(true);
   };
+
+  const handleResetAnalysis = () => {
+    // Reset all analysis-related states
+    setShowSolutions(false);
+    setIsPredicting(false);
+    setPrediction('');
+    setDiseaseDescription('');
+    setPesticideRecommendation(null);
+    setTreatmentTimeline([]);
+    setConfidenceScore(null);
+  };
+
+  useEffect(() => {
+    // Pre-load the image
+    const img = new Image();
+    img.src = bananaDisease;
+  }, []);
 
   return (
     <div className="container mx-auto p-4 space-y-8">
@@ -214,58 +166,24 @@ export default function DiseaseManagement() {
         </CardHeader>
 
         <CardContent className="p-4 md:p-6 space-y-6">
-          <motion.div
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`group border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ease-in-out cursor-pointer
-              ${isDragging 
-                ? 'border-green-400 bg-green-50/80 dark:border-blue-400 dark:bg-blue-900/20' 
-                : 'border-green-200 dark:border-blue-800 hover:border-green-300 dark:hover:border-blue-700'}`}
-          >
-            <div className="relative flex flex-col items-center justify-center space-y-4 min-h-[200px]">
-              <Camera className="h-12 w-12 text-green-600/80 dark:text-blue-400/80 group-hover:scale-110 transition-transform" />
-              <div className="space-y-2">
-                <p className="text-lg font-medium text-green-900 dark:text-blue-200">
-                  {isPredicting ? 'Analyze This Image' : 'Upload Plant Image'}
-                </p>
-                <p className="text-sm text-green-600/80 dark:text-blue-300/80">
-                  {isPredicting ? 'Click to start analysis' : 'Drag & drop or click to upload'}
-                </p>
+          {!showSolutions && (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="aspect-square w-full max-w-md bg-green-50/50 dark:bg-blue-900/20 rounded-xl overflow-hidden shadow-inner">
+                <img
+                  src={imagePreview}
+                  alt="Plant Disease Analysis"
+                  className="w-full h-full object-cover rounded-xl transform transition-transform hover:scale-105"
+                />
               </div>
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI2MCIgY3k9IjYwIiByPSIxIiBmaWxsPSIjZTNmZmYxIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')] opacity-10" />
-            </div>
-            <label className="w-full">
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                onChange={handleFileInputChange}
-                accept="image/*"
-              />
               <Button
                 variant="outline"
                 size="lg"
                 className="w-full md:w-auto mt-4 bg-green-100/80 hover:bg-green-200/80 dark:bg-blue-900/40 dark:hover:bg-blue-800/40 border-green-300 dark:border-blue-700 text-green-900 dark:text-blue-200"
-                onClick={isPredicting ? handlePredictClick : handleUploadClick}
+                onClick={handlePredictClick}
               >
-                <CloudUpload className="h-5 w-5 mr-2" />
-                {isPredicting ? 'Start Analysis' : 'Choose File'}
+                <Brain className="h-5 w-5 mr-2" />
+                Start AI Analysis
               </Button>
-            </label>
-          </motion.div>
-
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="space-y-2">
-              <Progress 
-                value={uploadProgress} 
-                className="w-full h-[6px] bg-green-100/50 dark:bg-blue-900/20"
-              />
-              <p className="text-xs text-green-600/80 dark:text-blue-300/80 text-center">
-                Uploading {uploadProgress}%...
-              </p>
             </div>
           )}
 
@@ -279,6 +197,17 @@ export default function DiseaseManagement() {
               <p className="text-green-800/80 dark:text-blue-200/80 font-medium">
                 Analyzing plant health...
               </p>
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="space-y-2 w-full max-w-md">
+                  <Progress 
+                    value={uploadProgress} 
+                    className="w-full h-[6px] bg-green-100/50 dark:bg-blue-900/20"
+                  />
+                  <p className="text-xs text-green-600/80 dark:text-blue-300/80 text-center">
+                    Processing {uploadProgress}%...
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -361,9 +290,9 @@ export default function DiseaseManagement() {
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           {[
-                            { title: "Severity Level", value: "Medium", icon: <AlertTriangle className="h-5 w-5" /> },
-                            { title: "Affected Area", value: "45%", icon: <PieChart className="h-5 w-5" /> },
-                            { title: "Progress Stage", value: "Early", icon: <Activity className="h-5 w-5" /> }
+                            { title: "Severity Level", value: "High", icon: <AlertTriangle className="h-5 w-5" /> },
+                            { title: "Affected Area", value: "65%", icon: <PieChart className="h-5 w-5" /> },
+                            { title: "Progress Stage", value: "Advanced", icon: <Activity className="h-5 w-5" /> }
                           ].map((metric, index) => (
                             <motion.div
                               key={index}
@@ -392,7 +321,12 @@ export default function DiseaseManagement() {
                           <div className="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl space-y-3">
                             <h4 className="font-semibold text-green-800 dark:text-blue-300">Key Symptoms</h4>
                             <ul className="space-y-2">
-                              {['Leaf discoloration', 'Spotted patterns', 'Tissue damage'].map((symptom, i) => (
+                              {[
+                                'Yellowing and wilting of leaves', 
+                                'Brown discoloration of vascular tissues', 
+                                'Stunted plant growth', 
+                                'Premature fruit drop'
+                              ].map((symptom, i) => (
                                 <li key={i} className="flex items-center gap-2 text-green-700/80 dark:text-blue-200/80">
                                   <div className="h-1.5 w-1.5 bg-green-500 rounded-full" />
                                   {symptom}
@@ -403,7 +337,12 @@ export default function DiseaseManagement() {
                           <div className="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl space-y-3">
                             <h4 className="font-semibold text-green-800 dark:text-blue-300">Environmental Factors</h4>
                             <ul className="space-y-2">
-                              {['High humidity', 'Temperature stress', 'Poor air circulation'].map((factor, i) => (
+                              {[
+                                'High soil moisture', 
+                                'Warm tropical climate', 
+                                'Poor soil drainage', 
+                                'Infected planting material'
+                              ].map((factor, i) => (
                                 <li key={i} className="flex items-center gap-2 text-green-700/80 dark:text-blue-200/80">
                                   <div className="h-1.5 w-1.5 bg-blue-500 rounded-full" />
                                   {factor}
@@ -602,15 +541,17 @@ export default function DiseaseManagement() {
 
         <CardFooter className="p-4 md:p-6 bg-gradient-to-br from-green-50/80 to-blue-50/80 dark:from-green-900/20 dark:to-blue-900/20 border-t border-green-100/50 dark:border-blue-900/30">
           <div className="flex flex-col md:flex-row justify-between items-center w-full gap-3">
-            <Button 
-              variant="outline"
-              size="lg"
-              className="w-full md:w-auto group bg-white/80 dark:bg-gray-800/80 hover:bg-green-50/50 dark:hover:bg-blue-900/30 transition-colors"
-              onClick={() => window.location.reload()}
-            >
-              <RefreshCw className="h-5 w-5 mr-2 group-hover:rotate-180 transition-transform" />
-              New Analysis
-            </Button>
+            {showSolutions && (
+              <Button 
+                variant="outline"
+                size="lg"
+                className="w-full md:w-auto group bg-white/80 dark:bg-gray-800/80 hover:bg-green-50/50 dark:hover:bg-blue-900/30 transition-colors"
+                onClick={handleResetAnalysis}
+              >
+                <RefreshCw className="h-5 w-5 mr-2 group-hover:rotate-180 transition-transform" />
+                New Analysis
+              </Button>
+            )}
             <div className="flex items-center gap-2 text-green-700/80 dark:text-blue-300/80 text-sm">
               <Brain className="h-5 w-5" />
               <span>Powered by KiaanAGROW AI v2.5</span>

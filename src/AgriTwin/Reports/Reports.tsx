@@ -263,7 +263,7 @@ const CardView = ({ parameter, value, analytics, onClick }) => {
         <CardContent className="relative z-10 flex items-center justify-between">
           <div className="space-y-2">
             <div className="text-3xl font-bold">
-              {isValidNumber ? `${numericValue.toFixed(1)}${parameter.unit}` : 'N/A'}
+              {isValidNumber ? `${numericValue.toFixed(1)}${parameter.unit}` : 'NE'}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {analytics?.description?.split('.')[0] || 'No description available'}
