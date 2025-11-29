@@ -42,7 +42,14 @@ import {
   Sprout,
   Tractor,
   Scale,
-  Bug
+  Bug,
+  Network,
+  GitBranch,
+  Workflow,
+  BrainCircuit,
+  Link,
+  Share2,
+  TrendingUp
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,6 +58,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Mock data sources
 const dataSources = [
@@ -68,7 +83,7 @@ const initialMessages = [
   {
     id: 1,
     sender: 'ai',
-    content: 'Hello Farm Manager! I\'m your Agriculture Digital Twin. I\'ve been monitoring field conditions. Would you like an overview of today\'s crop health and growth metrics?',
+    content: 'Hello! I\'m your AI Agronomist. I\'ve been monitoring field conditions. Would you like an overview of today\'s crop health and growth metrics?',
     timestamp: new Date(),
     type: 'greeting'
   },
@@ -95,6 +110,8 @@ export default function AgenticAI() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [activeDataSource, setActiveDataSource] = useState(null);
+  const [agentsDialogOpen, setAgentsDialogOpen] = useState(false);
+  const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Auto-scroll to bottom when messages change
@@ -272,10 +289,297 @@ export default function AgenticAI() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Farm Actions
-          </Button>
+          <Dialog open={agentsDialogOpen} onOpenChange={setAgentsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Workflow className="h-4 w-4" />
+                AI Agents
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-2xl">
+                  <Workflow className="h-6 w-6 text-green-600" />
+                  AI Agent Automation Platform
+                </DialogTitle>
+                <DialogDescription>
+                  Connect and orchestrate AI agents to automate your farm operations
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Available Agents */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Bot className="h-5 w-5" />
+                    Available AI Agents
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {[
+                      { name: 'Crop Monitor Agent', desc: 'Monitors crop health and sends alerts', icon: <Sprout className="h-5 w-5" />, status: 'active' },
+                      { name: 'Weather Analysis Agent', desc: 'Analyzes weather patterns and forecasts', icon: <Cloud className="h-5 w-5" />, status: 'active' },
+                      { name: 'Irrigation Controller', desc: 'Automates irrigation based on soil moisture', icon: <Droplets className="h-5 w-5" />, status: 'active' },
+                      { name: 'Pest Detection Agent', desc: 'Detects and alerts about pest infestations', icon: <Bug className="h-5 w-5" />, status: 'inactive' },
+                      { name: 'Harvest Scheduler', desc: 'Optimizes harvest timing and resource allocation', icon: <Scale className="h-5 w-5" />, status: 'active' },
+                      { name: 'Supply Chain Agent', desc: 'Manages logistics and supply chain operations', icon: <Tractor className="h-5 w-5" />, status: 'inactive' }
+                    ].map((agent, idx) => (
+                      <Card key={idx} className="p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex gap-3">
+                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                              {agent.icon}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">{agent.name}</h4>
+                              <p className="text-sm text-muted-foreground">{agent.desc}</p>
+                            </div>
+                          </div>
+                          <Badge variant={agent.status === 'active' ? 'default' : 'outline'}>
+                            {agent.status === 'active' ? (
+                              <><CheckCircle className="h-3 w-3 mr-1" />Active</>
+                            ) : (
+                              'Inactive'
+                            )}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Automation Workflows */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <GitBranch className="h-5 w-5" />
+                    Active Automation Workflows
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      { name: 'Smart Irrigation Flow', trigger: 'Soil Moisture < 30%', actions: ['Analyze weather', 'Calculate water needs', 'Start irrigation', 'Send notification'], runs: 142 },
+                      { name: 'Pest Alert System', trigger: 'Disease detected in imagery', actions: ['Identify pest type', 'Check treatment inventory', 'Alert agronomist', 'Schedule treatment'], runs: 23 },
+                      { name: 'Harvest Optimization', trigger: 'Crop maturity threshold', actions: ['Analyze market prices', 'Check labor availability', 'Schedule harvest', 'Notify buyers'], runs: 8 }
+                    ].map((workflow, idx) => (
+                      <Card key={idx} className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-yellow-600" />
+                            {workflow.name}
+                          </h4>
+                          <Badge variant="outline">{workflow.runs} runs</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <span className="font-medium text-green-600">Trigger:</span> {workflow.trigger}
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {workflow.actions.map((action, i) => (
+                              <div key={i} className="flex items-center gap-1">
+                                <Badge variant="secondary" className="text-xs">{action}</Badge>
+                                {i < workflow.actions.length - 1 && <ArrowUp className="h-3 w-3 text-muted-foreground rotate-90" />}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Integration Options */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Share2 className="h-5 w-5" />
+                    Integration Capabilities
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    {[
+                      { name: 'Webhooks', desc: 'Trigger actions via HTTP requests', icon: <Link /> },
+                      { name: 'API Connectors', desc: 'Connect to external services', icon: <Server /> },
+                      { name: 'Custom Scripts', desc: 'Run JavaScript/Python code', icon: <Code /> },
+                      { name: 'Database Actions', desc: 'Read/write to databases', icon: <Database /> },
+                      { name: 'File Operations', desc: 'Process and transform files', icon: <FileText /> },
+                      { name: 'Notifications', desc: 'Email, SMS, Slack alerts', icon: <MessageSquare /> }
+                    ].map((integration, idx) => (
+                      <Card key={idx} className="p-3 text-center hover:bg-accent transition-colors cursor-pointer">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            {integration.icon}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm">{integration.name}</h4>
+                            <p className="text-xs text-muted-foreground">{integration.desc}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button className="flex-1 bg-gradient-to-r from-green-600 to-blue-600">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Workflow
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Agents
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={knowledgeGraphOpen} onOpenChange={setKnowledgeGraphOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <BrainCircuit className="h-4 w-4" />
+                Knowledge Graph
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-2xl">
+                  <BrainCircuit className="h-6 w-6 text-purple-600" />
+                  Farm Knowledge Graph & AI Memory
+                </DialogTitle>
+                <DialogDescription>
+                  Accumulated knowledge, context, and learning patterns from your entire farm operations
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Knowledge Stats */}
+                <div className="grid md:grid-cols-4 gap-4">
+                  <Card className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-purple-600">12,847</div>
+                      <div className="text-sm text-muted-foreground">Data Points</div>
+                    </div>
+                  </Card>
+                  <Card className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600">487</div>
+                      <div className="text-sm text-muted-foreground">Insights Learned</div>
+                    </div>
+                  </Card>
+                  <Card className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-orange-600">94.2%</div>
+                      <div className="text-sm text-muted-foreground">Accuracy Rate</div>
+                    </div>
+                  </Card>
+                  <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-600">156</div>
+                      <div className="text-sm text-muted-foreground">Days Training</div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Knowledge Connections - Simple View */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Network className="h-5 w-5" />
+                    Knowledge Connections
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {[
+                      { label: 'Soil Health', connections: 24, icon: <Trees className="h-6 w-6" />, color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+                      { label: 'Weather Patterns', connections: 18, icon: <Cloud className="h-6 w-6" />, color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+                      { label: 'Crop Cycles', connections: 32, icon: <Sprout className="h-6 w-6" />, color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+                      { label: 'Pest Behavior', connections: 15, icon: <Bug className="h-6 w-6" />, color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+                      { label: 'Irrigation Needs', connections: 21, icon: <Droplets className="h-6 w-6" />, color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400' },
+                      { label: 'Market Trends', connections: 12, icon: <TrendingUp className="h-6 w-6" />, color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' }
+                    ].map((node, idx) => (
+                      <Card key={idx} className={`p-4 ${node.color} border-2`}>
+                        <div className="flex items-center justify-between mb-2">
+                          {node.icon}
+                          <Badge variant="secondary">{node.connections} links</Badge>
+                        </div>
+                        <h4 className="font-semibold">{node.label}</h4>
+                      </Card>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Learning Progress */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card className="p-4">
+                    <h3 className="text-lg font-semibold mb-3">Active Learning Areas</h3>
+                    <div className="space-y-3">
+                      {[
+                        { area: 'Optimal Irrigation Timing', progress: 87 },
+                        { area: 'Pest Prevention Patterns', progress: 72 },
+                        { area: 'Yield Prediction Models', progress: 94 },
+                        { area: 'Resource Optimization', progress: 81 }
+                      ].map((item, idx) => (
+                        <div key={idx}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>{item.area}</span>
+                            <span className="font-semibold">{item.progress}%</span>
+                          </div>
+                          <Progress value={item.progress} className="h-2" />
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  <Card className="p-4">
+                    <h3 className="text-lg font-semibold mb-3">Recent Insights</h3>
+                    <div className="space-y-2">
+                      {[
+                        { insight: 'Early morning irrigation reduces water usage by 23%', time: '2 hours ago' },
+                        { insight: 'Fungal risk increases 48hrs after heavy rain', time: '1 day ago' },
+                        { insight: 'North field responds better to organic fertilizer', time: '3 days ago' },
+                        { insight: 'Pest activity peaks during warm, humid evenings', time: '5 days ago' }
+                      ].map((item, idx) => (
+                        <div key={idx} className="p-2 bg-accent rounded-lg">
+                          <p className="text-sm font-medium">{item.insight}</p>
+                          <p className="text-xs text-muted-foreground">{item.time}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Data Sources Contributing to Knowledge */}
+                <Card className="p-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Knowledge Sources & Context
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    {[
+                      { source: 'IoT Sensors', records: '8,234 records', contribution: 'Real-time field data' },
+                      { source: 'Satellite Imagery', records: '142 images', contribution: 'Crop health analysis' },
+                      { source: 'Weather History', records: '1,567 data points', contribution: 'Pattern recognition' },
+                      { source: 'Harvest Logs', records: '89 seasons', contribution: 'Yield optimization' },
+                      { source: 'Manual Observations', records: '423 entries', contribution: 'Expert knowledge' },
+                      { source: 'Market Data', records: '2,341 records', contribution: 'Economic insights' }
+                    ].map((item, idx) => (
+                      <div key={idx} className="p-3 border rounded-lg">
+                        <h4 className="font-semibold text-sm mb-1">{item.source}</h4>
+                        <p className="text-xs text-muted-foreground mb-1">{item.records}</p>
+                        <Badge variant="outline" className="text-xs">{item.contribution}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Knowledge Base
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <Activity className="h-4 w-4 mr-2" />
+                    Training Dashboard
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button variant="outline" size="sm">
             <Settings className="h-4 w-4" />
           </Button>

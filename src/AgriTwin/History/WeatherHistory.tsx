@@ -57,7 +57,7 @@ interface TooltipProps {
   label?: string;
 }
 
-const WeatherHistory05 = () => {
+const WeatherHistory = () => {
   const { token, tenantId } = useSelector((state: { login: { token: string; tenantId: string } }) => state.login);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -68,40 +68,69 @@ const WeatherHistory05 = () => {
 
   useEffect(() => {
     fetchHistoricalData();
-    
+
     if (autoRefresh) {
       const interval = setInterval(fetchHistoricalData, 5000);
       return () => clearInterval(interval);
     }
-  }, [activeTab, tenantId, token, autoRefresh]);
+  }, [activeTab, autoRefresh]);
+
+  // Generate realistic fake data for demo
+  const generateFakeData = () => {
+    const now = Date.now();
+    const dataPoints = activeTab === 'daily' ? 24 : activeTab === 'weekly' ? 168 : 720;
+    const interval = activeTab === 'daily' ? 3600000 : activeTab === 'weekly' ? 3600000 : 3600000;
+
+    const temperature = [];
+    const humidity = [];
+    const pressure = [];
+    const rainfall = [];
+
+    for (let i = dataPoints - 1; i >= 0; i--) {
+      const timestamp = new Date(now - i * interval).toISOString();
+
+      // Realistic temperature (18-32°C with day/night cycle)
+      const hour = new Date(timestamp).getHours();
+      const isDaytime = hour >= 6 && hour <= 18;
+      const baseTemp = isDaytime
+        ? 24 + Math.sin((hour - 6) / 12 * Math.PI) * 6
+        : 20 - Math.sin((hour - 18) / 12 * Math.PI) * 3;
+      const tempValue = Math.max(18, Math.min(32, baseTemp + (Math.random() - 0.5) * 3));
+
+      // Realistic humidity (40-90%)
+      const baseHumidity = 65 + Math.sin(i / 10) * 15;
+      const humidityValue = Math.max(40, Math.min(90, baseHumidity + (Math.random() - 0.5) * 10));
+
+      // Realistic pressure (980-1030 hPa)
+      const basePressure = 1010 + Math.sin(i / 20) * 12;
+      const pressureValue = Math.max(980, Math.min(1030, basePressure + (Math.random() - 0.5) * 5));
+
+      // Realistic rainfall (0-60mm with occasional spikes)
+      const rainfallChance = Math.random();
+      const rainfallValue = rainfallChance > 0.8
+        ? Math.random() * 40 + 10
+        : Math.random() * 5;
+
+      temperature.push({ timestamp, value: parseFloat(tempValue.toFixed(1)) });
+      humidity.push({ timestamp, value: parseFloat(humidityValue.toFixed(1)) });
+      pressure.push({ timestamp, value: parseFloat(pressureValue.toFixed(1)) });
+      rainfall.push({ timestamp, value: parseFloat(rainfallValue.toFixed(1)) });
+    }
+
+    return { temperature, humidity, pressure, rainfall };
+  };
 
   const fetchHistoricalData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
+      // Simulate API delay for realism
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    //   const profileResponse = await GET(
-    //     `${import.meta.env.VITE_USERS_API_URL}/api/v1/users/tenants/profile/${tenantId}`,
-    //     token
-    //   );
-
-    //   if (!profileResponse.success || !profileResponse.data?.tenant?.iotSystem?.username) {
-    //     throw new Error('IoT system not configured for this tenant');
-    //   }
-
-    //   const plotId = profileResponse.data.tenant.iotSystem.username;
-
-      const response = await GET(
-        `${import.meta.env.VITE_API_URL}/api/v1/fyllo/historicalData?type=${activeTab}&category=weather`,
-        token
-      );
-
-      if (!response.success || !response.data) {
-        throw new Error(response.message || 'Failed to fetch historical data');
-      }
-
-      setHistoricalData(response.data.historicalData);
+      // Use fake data instead of API call
+      const fakeData = generateFakeData();
+      setHistoricalData(fakeData);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch historical data';
       setError(message);
@@ -585,4 +614,4 @@ const WeatherHistory05 = () => {
   );
 };
 
-export default WeatherHistory05;
+export default WeatherHistory;

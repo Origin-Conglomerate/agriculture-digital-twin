@@ -44,7 +44,7 @@ interface TenantResponse {
   };
 }
 
-const SoilHistory05 = () => {
+const SoilHistory = () => {
   const { token, tenantId } = useSelector((state: { login: { token: string; tenantId: string } }) => state.login);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -54,37 +54,72 @@ const SoilHistory05 = () => {
 
   useEffect(() => {
     fetchHistoricalData();
-  }, [activeTab, tenantId, token]);
+  }, [activeTab]);
+
+  // Generate realistic fake data for demo
+  const generateFakeData = () => {
+    const now = Date.now();
+    const dataPoints = activeTab === 'daily' ? 24 : activeTab === 'weekly' ? 168 : 720;
+    const interval = activeTab === 'daily' ? 3600000 : activeTab === 'weekly' ? 3600000 : 3600000;
+
+    const leafWetness = [];
+    const soilTemperature = [];
+    const soilMoistureLayer1 = [];
+    const soilMoistureLayer2 = [];
+    const combinedGraph = [];
+
+    for (let i = dataPoints - 1; i >= 0; i--) {
+      const timestamp = new Date(now - i * interval).toISOString();
+
+      // Realistic leaf wetness (0-100%)
+      const baseLeafWetness = 45 + Math.sin(i / 8) * 20;
+      const leafWetnessValue = Math.max(0, Math.min(100, baseLeafWetness + (Math.random() - 0.5) * 15));
+
+      // Realistic soil temperature (15-28°C)
+      const baseSoilTemp = 21 + Math.sin(i / 12) * 4;
+      const soilTempValue = Math.max(15, Math.min(28, baseSoilTemp + (Math.random() - 0.5) * 3));
+
+      // Realistic soil moisture layer 1 (15-45%)
+      const baseMoisture1 = 28 + Math.sin(i / 15) * 8;
+      const moisture1Value = Math.max(15, Math.min(45, baseMoisture1 + (Math.random() - 0.5) * 6));
+
+      // Realistic soil moisture layer 2 (20-50%)
+      const baseMoisture2 = 32 + Math.sin(i / 15) * 9;
+      const moisture2Value = Math.max(20, Math.min(50, baseMoisture2 + (Math.random() - 0.5) * 7));
+
+      leafWetness.push({ timestamp, value: parseFloat(leafWetnessValue.toFixed(1)) });
+      soilTemperature.push({ timestamp, value: parseFloat(soilTempValue.toFixed(1)) });
+      soilMoistureLayer1.push({ timestamp, value: parseFloat(moisture1Value.toFixed(1)) });
+      soilMoistureLayer2.push({ timestamp, value: parseFloat(moisture2Value.toFixed(1)) });
+      combinedGraph.push({
+        timestamp,
+        layer1: parseFloat(moisture1Value.toFixed(1)),
+        layer2: parseFloat(moisture2Value.toFixed(1))
+      });
+    }
+
+    return {
+      leafWetness,
+      soilTemperature,
+      soilMoisture: {
+        layer1: soilMoistureLayer1,
+        layer2: soilMoistureLayer2,
+        combinedGraph
+      }
+    };
+  };
 
   const fetchHistoricalData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // First, get tenant profile to get iotUsername
-    //   const profileResponse = await ApiHandler.GET<TenantResponse>(
-    //     `${import.meta.env.VITE_USERS_API_URL}/api/v1/users/tenants/profile/${tenantId}`,
-    //     token
-    //   );
+      // Simulate API delay for realism
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    //   if (!profileResponse.success || !profileResponse.data?.tenant?.iotSystem?.username) {
-    //     throw new Error('IoT system not configured for this tenant');
-    //   }
-
-    //   const plotId = profileResponse.data.tenant.iotSystem.username;
-
-      // Then, fetch historical data
-      const response = await GET(
-        `${import.meta.env.VITE_API_URL}/api/v1/fyllo/historicalData?type=${activeTab}&category=soil`,
-        token
-      );
-      console.log(response.data.historicalData);
-
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch historical data');
-      }
-
-      setHistoricalData(response.data.historicalData);
+      // Use fake data instead of API call
+      const fakeData = generateFakeData();
+      setHistoricalData(fakeData);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch historical data';
       setError(message);
@@ -512,4 +547,4 @@ const SoilHistory05 = () => {
   );
 };
 
-export default SoilHistory05;
+export default SoilHistory;

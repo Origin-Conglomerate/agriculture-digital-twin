@@ -61,7 +61,7 @@ interface TooltipProps {
   label?: string;
 }
 
-const EnvironmentHistory05 = () => {
+const EnvironmentHistory = () => {
   const { token, tenantId } = useSelector((state: { login: { token: string; tenantId: string } }) => state.login);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -72,39 +72,55 @@ const EnvironmentHistory05 = () => {
 
   useEffect(() => {
     fetchHistoricalData();
-    
+
     if (autoRefresh) {
       const interval = setInterval(fetchHistoricalData, 5000);
       return () => clearInterval(interval);
     }
-  }, [activeTab, tenantId, token, autoRefresh]);
+  }, [activeTab, autoRefresh]);
+
+  // Generate realistic fake data for demo
+  const generateFakeData = () => {
+    const now = Date.now();
+    const dataPoints = activeTab === 'daily' ? 24 : activeTab === 'weekly' ? 168 : 720;
+    const interval = activeTab === 'daily' ? 3600000 : activeTab === 'weekly' ? 3600000 : 3600000;
+
+    const lightIntensity = [];
+    const windSpeed = [];
+
+    for (let i = dataPoints - 1; i >= 0; i--) {
+      const timestamp = new Date(now - i * interval).toISOString();
+
+      // Realistic light intensity (0-100000 lux with day/night cycle)
+      const hour = new Date(timestamp).getHours();
+      const isDaytime = hour >= 6 && hour <= 18;
+      const baseLightIntensity = isDaytime
+        ? 30000 + Math.sin((hour - 6) / 12 * Math.PI) * 50000
+        : 0;
+      const lightValue = Math.max(0, baseLightIntensity + (Math.random() - 0.5) * 10000);
+
+      // Realistic wind speed (0-40 km/h)
+      const baseWind = 8 + Math.sin(i / 10) * 5;
+      const windValue = Math.max(0, baseWind + (Math.random() - 0.5) * 6);
+
+      lightIntensity.push({ timestamp, value: parseFloat(lightValue.toFixed(1)) });
+      windSpeed.push({ timestamp, value: parseFloat(windValue.toFixed(1)) });
+    }
+
+    return { lightIntensity, windSpeed };
+  };
 
   const fetchHistoricalData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-    //   const profileResponse = await ApiHandler.GET<TenantResponse>(
-    //     `${import.meta.env.VITE_USERS_API_URL}/api/v1/users/tenants/profile/${tenantId}`,
-    //     token
-    //   );
+      // Simulate API delay for realism
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    //   if (!profileResponse.success || !profileResponse.data?.tenant?.iotSystem?.username) {
-    //     throw new Error('IoT system not configured for this tenant');
-    //   }
-
-    //   const plotId = profileResponse.data.tenant.iotSystem.username;
-
-      const response = await GET(
-        `${import.meta.env.VITE_API_URL}/api/v1/fyllo/historicalData?type=${activeTab}&category=environment`,
-        token
-      );
-
-      if (!response.success || !response.data) {
-        throw new Error(response.message || 'Failed to fetch historical data');
-      }
-
-      setHistoricalData(response.data.historicalData);
+      // Use fake data instead of API call
+      const fakeData = generateFakeData();
+      setHistoricalData(fakeData);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch historical data';
       setError(message);
@@ -489,4 +505,4 @@ const EnvironmentHistory05 = () => {
   );
 };
 
-export default EnvironmentHistory05;
+export default EnvironmentHistory;

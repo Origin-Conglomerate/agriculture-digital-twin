@@ -62,7 +62,7 @@ const ControlPanel = () => {
   // Dummy data for valves
   const dummyValves: Valve[] = [
     {
-      name: "Valve 1 - Front Garden",
+      name: "Valve 1",
       config: {
         method: "Time-based",
         hours: 1,
@@ -70,14 +70,14 @@ const ControlPanel = () => {
       }
     },
     {
-      name: "Valve 2 - Back Garden",
+      name: "Valve 2",
       config: {
         method: "Volume-based",
         volume: 500
       }
     },
     {
-      name: "Valve 3 - Vegetable Patch",
+      name: "Valve 3",
       config: {
         method: "Time-based",
         hours: 0,
@@ -85,7 +85,7 @@ const ControlPanel = () => {
       }
     },
     {
-      name: "Valve 4 - Orchard",
+      name: "Valve 4",
       config: {
         method: "Volume-based",
         volume: 1000

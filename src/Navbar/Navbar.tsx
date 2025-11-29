@@ -338,7 +338,7 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-0.5">
               
-              <span className="text-green-700 font-[600] md:mb-0.5 text-2xl">AGRITWIN</span>
+              <span className="text-green-700 font-[600] md:mb-0.5 text-2xl">AgriTwin</span>
             </Link>
           </div>
 

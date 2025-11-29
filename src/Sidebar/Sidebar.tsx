@@ -56,7 +56,8 @@ import {
   LandPlotIcon,
   LandmarkIcon,
   IndianRupee,
-  Dog
+  Dog,
+  Satellite
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Link, useNavigate } from "react-router-dom"
@@ -273,6 +274,17 @@ export default function AppSidebar() {
         {
           title: "History",
           url: "/irrigation/history"
+        }
+      ]
+    },
+    {
+      title: "Satellite Imagery",
+      url: "#",
+      icon: Satellite,
+      items: [
+        {
+          title: "Imagery",
+          url: "/satelliteimagery"
         }
       ]
     },

@@ -57,24 +57,24 @@ const LOG_TYPES = {
   TRANSPORT: { label: 'Transport', icon: <Truck className="h-4 w-4" />, color: 'text-indigo-400' }
 };
 
-// Mock log events for agriculture
+// Mock log events for a single banana farm in Karnataka
 const generateLogEvent = () => {
   const types = Object.keys(LOG_TYPES);
   const randomType = types[Math.floor(Math.random() * types.length)];
   const now = new Date();
-  
-  const fields = ['North Field', 'South Field', 'East Orchard', 'West Vineyard'];
-  const crops = ['Wheat', 'Corn', 'Soybeans', 'Tomatoes', 'Apples', 'Grapes'];
-  const equipment = ['Tractor #5', 'Irrigation System', 'Harvester #2', 'Drone #3'];
+
+  const fields = ['North Block', 'South Block', 'East Block', 'West Block', 'Central Block'];
+  const bananaVarieties = ['Robusta (Poovan)', 'Grand Naine', 'Yelakki'];
+  const equipment = ['Drip System-1', 'Sprayer Unit-2', 'Mulcher-3', 'Farm Drone'];
   const randomField = fields[Math.floor(Math.random() * fields.length)];
-  const randomCrop = crops[Math.floor(Math.random() * crops.length)];
+  const randomCrop = bananaVarieties[Math.floor(Math.random() * bananaVarieties.length)];
   const randomEquipment = equipment[Math.floor(Math.random() * equipment.length)];
 
   const baseEvent = {
     id: Date.now(),
     timestamp: now,
     type: randomType,
-    source: ['Weather Station', 'Soil Sensor', 'Drone', 'Farm Manager'][Math.floor(Math.random() * 4)],
+    source: ['IoT Sensor Network', 'Field Monitor', 'Farm Drone', 'Farm Manager'][Math.floor(Math.random() * 4)],
     status: ['success', 'warning', 'error', 'info'][Math.floor(Math.random() * 4)]
   };
 
@@ -82,99 +82,99 @@ const generateLogEvent = () => {
     case 'WEATHER':
       return {
         ...baseEvent,
-        message: `Weather update for ${randomField}`,
+        message: `Weather monitoring at ${randomField}`,
         details: {
           field: randomField,
-          temperature: `${Math.floor(10 + Math.random() * 25)}°C`,
-          humidity: `${Math.floor(40 + Math.random() * 50)}%`,
-          conditions: ['Sunny', 'Partly Cloudy', 'Rainy', 'Foggy'][Math.floor(Math.random() * 4)],
-          wind: `${Math.floor(1 + Math.random() * 15)} km/h`
+          temperature: `${Math.floor(22 + Math.random() * 15)}°C`,
+          humidity: `${Math.floor(60 + Math.random() * 30)}%`,
+          conditions: ['Sunny', 'Partly Cloudy', 'Monsoon Rain', 'Hot & Humid'][Math.floor(Math.random() * 4)],
+          wind: `${Math.floor(5 + Math.random() * 20)} km/h`
         }
       };
     case 'IRRIGATION':
       return {
         ...baseEvent,
-        message: `Irrigation activity in ${randomField}`,
+        message: `Drip irrigation cycle at ${randomField}`,
         details: {
           field: randomField,
           crop: randomCrop,
-          duration: `${Math.floor(30 + Math.random() * 180)} minutes`,
-          waterUsed: `${Math.floor(1000 + Math.random() * 5000)} liters`,
+          duration: `${Math.floor(45 + Math.random() * 90)} minutes`,
+          waterUsed: `${Math.floor(2000 + Math.random() * 4000)} liters`,
           status: ['Completed', 'In Progress', 'Scheduled'][Math.floor(Math.random() * 3)]
         }
       };
     case 'CROP':
       return {
         ...baseEvent,
-        message: `Crop health update for ${randomCrop}`,
+        message: `${randomCrop} health check at ${randomField}`,
         details: {
           field: randomField,
-          crop: randomCrop,
-          growthStage: ['Seedling', 'Vegetative', 'Flowering', 'Maturity'][Math.floor(Math.random() * 4)],
-          health: ['Excellent', 'Good', 'Fair', 'Poor'][Math.floor(Math.random() * 4)],
-          issues: ['None', 'Nutrient Deficiency', 'Disease', 'Weeds'][Math.floor(Math.random() * 4)]
+          variety: randomCrop,
+          growthStage: ['Sucker Stage', 'Vegetative', 'Shooting', 'Bunch Development'][Math.floor(Math.random() * 4)],
+          health: ['Excellent', 'Good', 'Moderate', 'Needs Attention'][Math.floor(Math.random() * 4)],
+          issues: ['None', 'Leaf Spot', 'Panama Disease Risk', 'Sigatoka'][Math.floor(Math.random() * 4)]
         }
       };
     case 'SOIL':
       return {
         ...baseEvent,
-        message: `Soil sensor reading from ${randomField}`,
+        message: `Soil analysis at ${randomField}`,
         details: {
           field: randomField,
-          moisture: `${Math.floor(10 + Math.random() * 30)}%`,
-          pH: (5.5 + Math.random() * 3).toFixed(1),
-          nitrogen: `${Math.floor(10 + Math.random() * 90)} ppm`,
-          temperature: `${Math.floor(10 + Math.random() * 20)}°C`
+          moisture: `${Math.floor(15 + Math.random() * 25)}%`,
+          pH: (6.0 + Math.random() * 1.5).toFixed(1),
+          NPK: `${Math.floor(150 + Math.random() * 200)} ppm`,
+          temperature: `${Math.floor(24 + Math.random() * 8)}°C`
         }
       };
     case 'EQUIPMENT':
       return {
         ...baseEvent,
-        message: `Equipment status update for ${randomEquipment}`,
+        message: `${randomEquipment} status update`,
         details: {
           equipment: randomEquipment,
-          status: ['Running', 'Idle', 'Maintenance', 'Fault'][Math.floor(Math.random() * 4)],
-          fuel: `${Math.floor(20 + Math.random() * 80)}%`,
-          hours: Math.floor(100 + Math.random() * 500),
-          lastService: `${Math.floor(1 + Math.random() * 30)} days ago`
+          status: ['Operational', 'Active', 'Maintenance', 'Standby'][Math.floor(Math.random() * 4)],
+          powerLevel: `${Math.floor(40 + Math.random() * 60)}%`,
+          runHours: Math.floor(200 + Math.random() * 800),
+          lastService: `${Math.floor(5 + Math.random() * 25)} days ago`
         }
       };
     case 'HARVEST':
       return {
         ...baseEvent,
-        message: `Harvest activity for ${randomCrop}`,
+        message: `Harvest activity in ${randomField}`,
         details: {
           field: randomField,
-          crop: randomCrop,
-          yield: `${Math.floor(100 + Math.random() * 900)} kg`,
-          quality: ['Premium', 'Good', 'Fair', 'Poor'][Math.floor(Math.random() * 4)],
-          harvester: `OP-${Math.floor(1000 + Math.random() * 9000)}`,
+          variety: randomCrop,
+          bunchesHarvested: `${Math.floor(50 + Math.random() * 150)} bunches`,
+          grade: ['Premium', 'Grade A', 'Grade B', 'Standard'][Math.floor(Math.random() * 4)],
+          worker: `Worker-${Math.floor(1 + Math.random() * 15)}`,
           status: ['Completed', 'In Progress', 'Scheduled'][Math.floor(Math.random() * 3)]
         }
       };
     case 'PEST':
       return {
         ...baseEvent,
-        message: `Pest control activity in ${randomField}`,
+        message: `Pest check in ${randomField}`,
         details: {
           field: randomField,
-          crop: randomCrop,
-          pest: ['Aphids', 'Locusts', 'Mites', 'None'][Math.floor(Math.random() * 4)],
-          treatment: ['None', 'Organic', 'Chemical', 'Biological'][Math.floor(Math.random() * 4)],
+          variety: randomCrop,
+          pest: ['Banana Weevil', 'Thrips', 'Leaf Spot', 'None Detected'][Math.floor(Math.random() * 4)],
+          treatment: ['Bio-Pesticide', 'Neem Spray', 'Manual Removal', 'Monitoring'][Math.floor(Math.random() * 4)],
           severity: ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)],
-          technician: `TECH-${Math.floor(1000 + Math.random() * 9000)}`
+          inspector: `Field Staff-${Math.floor(1 + Math.random() * 8)}`
         }
       };
     default:
       return {
         ...baseEvent,
-        message: 'Transport activity',
+        message: 'Farm produce dispatch',
         details: {
-          crop: randomCrop,
-          quantity: `${Math.floor(100 + Math.random() * 900)} kg`,
-          destination: ['Local Market', 'Processing Plant', 'Storage'][Math.floor(Math.random() * 3)],
-          vehicle: `TRUCK-${Math.floor(1000 + Math.random() * 9000)}`,
-          status: ['In Transit', 'Loaded', 'Unloaded'][Math.floor(Math.random() * 3)]
+          variety: randomCrop,
+          quantity: `${Math.floor(200 + Math.random() * 500)} kg`,
+          destination: ['Local Market', 'Wholesale Market', 'Storage Facility'][Math.floor(Math.random() * 3)],
+          vehicle: `Farm Truck-${Math.floor(1 + Math.random() * 3)}`,
+          status: ['In Transit', 'Loading', 'Ready'][Math.floor(Math.random() * 3)]
         }
       };
   }
@@ -186,20 +186,26 @@ export default function LogMonitor() {
   const [isPaused, setIsPaused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState({
-    total: 0,
+    total: 1,
     warnings: 0,
     errors: 0,
-    lastHour: 0,
-    yieldEstimate: 0
+    lastHour: 1,
+    yieldEstimate: 6.5
   });
   const logsEndRef = useRef(null);
+
+  // Initialize with one log on mount
+  useEffect(() => {
+    const initialLog = generateLogEvent();
+    setLogs([initialLog]);
+  }, []);
 
   // Auto-scroll to bottom when logs change
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // Simulate live log events
+  // Simulate live log events - fixed 5 second interval
   useEffect(() => {
     if (isPaused) return;
 
@@ -211,9 +217,9 @@ export default function LogMonitor() {
         warnings: prev.warnings + (newEvent.status === 'warning' ? 1 : 0),
         errors: prev.errors + (newEvent.status === 'error' ? 1 : 0),
         lastHour: prev.lastHour + 1,
-        yieldEstimate: Math.max(0, prev.yieldEstimate + (Math.random() > 0.5 ? 0.1 : -0.1)) // Simulate yield fluctuation
+        yieldEstimate: Math.max(0, prev.yieldEstimate + (Math.random() > 0.5 ? 0.15 : -0.05)) // Simulate yield fluctuation
       }));
-    }, 1000 + Math.random() * 1500); // Random interval between 1-2.5s
+    }, 5000); // Fixed 5 second interval
 
     return () => clearInterval(interval);
   }, [isPaused]);
@@ -258,9 +264,9 @@ export default function LogMonitor() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-green-300 
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-green-300
             to-amber-300 bg-clip-text text-transparent">
-            Agriculture Digital Twin Monitor
+            Digital Twin Monitor
           </h1>
           <div className="flex items-center gap-4 text-muted-foreground">
             <Badge className="bg-green-500/10 text-green-500">

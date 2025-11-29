@@ -88,69 +88,119 @@ interface TenantData {
     const [c4time, setC4time] = useState("");
     const [c4vol, setC4vol] = useState("");
   
-    const fetchTenantData = async () => {
-      try {
-        const response = await GET(`${import.meta.env.VITE_API_URL}/api/v1/tenants/list?tenantId=${tenantId}`, token);
-        
-        if (response.success && response.data.tenants.length > 0) {
-          const tenant = response.data.tenants[0];
-          if (!tenant.irrigation_system_username || !tenant.irrigation_system_password) {
-            throw new Error('Irrigation system not setup for this plot');
-          }
-          return tenant;
-        } else {
-          throw new Error('Failed to fetch tenant data');
+    // Hardcoded fertigation valves for demo
+    const HARDCODED_VALVES: FertigationValve[] = [
+      {
+        name: "Fertigation Valve 1",
+        config: {
+          soak: "10",
+          c1volflag: false,
+          c2volflag: false,
+          c3volflag: false,
+          c4volflag: false,
+          c1time: "15",
+          c1vol: "100",
+          c2time: "20",
+          c2vol: "150",
+          c3time: "10",
+          c3vol: "80",
+          c4time: "25",
+          c4vol: "200",
+          cycles: "3"
         }
-      } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Error fetching tenant data');
-      }
-    };
-  
-    const getFertigationValves = async (tenant: TenantData) => {
-      try {
-        const response = await POST(
-          `${import.meta.env.VITE_API_URL}/api/v1/fertigation/profiles/fertigationValves`,
-          { tenantData: tenant },
-          token
-        );
-  
-        if (!response.data.fertigationValves?.length) {
-          throw new Error('No fertigation valves found');
+      },
+      {
+        name: "Fertigation Valve 2",
+        config: {
+          soak: "15",
+          c1volflag: true,
+          c2volflag: false,
+          c3volflag: true,
+          c4volflag: false,
+          c1time: "20",
+          c1vol: "120",
+          c2time: "25",
+          c2vol: "180",
+          c3time: "15",
+          c3vol: "100",
+          c4time: "30",
+          c4vol: "220",
+          cycles: "4"
         }
-  
-        return response.data.fertigationValves;
-      } catch (error) {
-        throw new Error('Error fetching fertigation valves');
+      },
+      {
+        name: "Fertigation Valve 3",
+        config: {
+          soak: "12",
+          c1volflag: false,
+          c2volflag: true,
+          c3volflag: false,
+          c4volflag: true,
+          c1time: "18",
+          c1vol: "110",
+          c2time: "22",
+          c2vol: "160",
+          c3time: "12",
+          c3vol: "90",
+          c4time: "28",
+          c4vol: "210",
+          cycles: "3"
+        }
+      },
+      {
+        name: "Fertigation Valve 4",
+        config: {
+          soak: "8",
+          c1volflag: true,
+          c2volflag: true,
+          c3volflag: false,
+          c4volflag: false,
+          c1time: "12",
+          c1vol: "95",
+          c2time: "18",
+          c2vol: "140",
+          c3time: "8",
+          c3vol: "70",
+          c4time: "20",
+          c4vol: "180",
+          cycles: "2"
+        }
       }
-    };
-  
+    ];
+
     useEffect(() => {
-      const initializeData = async () => {
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-          // First fetch tenant data
-          const tenant = await fetchTenantData();
-          setTenantData(tenant);
-  
-          // Only after tenant data is fetched and set, fetch valves
-          const valves = await getFertigationValves(tenant);
-          setFertigationValves(valves);
-        } catch (error) {
-          setError(error instanceof Error ? error.message : 'An error occurred');
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error instanceof Error ? error.message : 'An error occurred'
-          });
-        } finally {
-          setIsLoading(false);
-        }
-      };
-  
-      initializeData();
-    }, [token, tenantId]);
+      // Simulate loading and use hardcoded data
+      setIsLoading(true);
+      setError(null);
+
+      setTimeout(() => {
+        setFertigationValves(HARDCODED_VALVES);
+        setTenantData({
+          irrigation_system_username: "demo_user",
+          irrigation_system_password: "demo_pass"
+        });
+
+        // Set first valve as default
+        const defaultValve = HARDCODED_VALVES[0];
+        setSelectedValve(defaultValve);
+        setSoak(defaultValve.config.soak);
+        setCycles(defaultValve.config.cycles);
+        setC1volflag(defaultValve.config.c1volflag);
+        setC2volflag(defaultValve.config.c2volflag);
+        setC3volflag(defaultValve.config.c3volflag);
+        setC4volflag(defaultValve.config.c4volflag);
+        setC1time(defaultValve.config.c1time);
+        setC1vol(defaultValve.config.c1vol);
+        setC2time(defaultValve.config.c2time);
+        setC2vol(defaultValve.config.c2vol);
+        setC3time(defaultValve.config.c3time);
+        setC3vol(defaultValve.config.c3vol);
+        setC4time(defaultValve.config.c4time);
+        setC4vol(defaultValve.config.c4vol);
+
+        setIsLoading(false);
+      }, 500);
+    }, []);
   
     const handleValveSelect = (valve: FertigationValve) => {
       setSelectedValve(valve);
@@ -175,49 +225,46 @@ interface TenantData {
         handleAlert("Please select a valve and ensure tenant data is available");
         return;
       }
-  
+
       setIsLoading(true);
-      try {
-        const payload = {
-          valveName: selectedValve.name,
-          tenantData,
-          config: {
-            soak,
-            cycles,
-            c1volflag,
-            c2volflag,
-            c3volflag,
-            c4volflag,
-            c1time,
-            c1vol,
-            c2time,
-            c2vol,
-            c3time,
-            c3vol,
-            c4time,
-            c4vol
+
+      // Simulate API call
+      setTimeout(() => {
+        // Update the valve configuration locally
+        const updatedValves = fertigationValves.map(valve => {
+          if (valve.name === selectedValve.name) {
+            return {
+              ...valve,
+              config: {
+                soak,
+                cycles,
+                c1volflag,
+                c2volflag,
+                c3volflag,
+                c4volflag,
+                c1time,
+                c1vol,
+                c2time,
+                c2vol,
+                c3time,
+                c3vol,
+                c4time,
+                c4vol
+              }
+            };
           }
-        };
-  
-        const response = await POST(
-          `${import.meta.env.VITE_API_URL}/api/v1/fertigation/update-fertigationconfig`,
-          payload,
-          token
-        );
-  
-        if (response.success) {
-          handleAlert("Configuration Updated Successfully");
-          // Refresh valve data after successful update
-          const valves = await getFertigationValves(tenantData);
-          setFertigationValves(valves);
-        } else {
-          throw new Error("Failed to Update Configuration");
-        }
-      } catch (error) {
-        handleAlert(error instanceof Error ? error.message : "Failed to update configuration");
-      } finally {
+          return valve;
+        });
+
+        setFertigationValves(updatedValves);
         setIsLoading(false);
-      }
+        handleAlert("Configuration Updated Successfully");
+
+        toast({
+          title: "Success",
+          description: "Fertigation configuration updated successfully"
+        });
+      }, 800);
     };
   
     const handleAlert = (message: string) => {
@@ -270,10 +317,13 @@ interface TenantData {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <Select onValueChange={(value) => {
-              const selectedValve = fertigationValves.find(valve => valve.name === value);
-              if (selectedValve) handleValveSelect(selectedValve);
-            }}>
+            <Select
+              value={selectedValve?.name}
+              onValueChange={(value) => {
+                const selectedValve = fertigationValves.find(valve => valve.name === value);
+                if (selectedValve) handleValveSelect(selectedValve);
+              }}
+            >
               <SelectTrigger className="w-full bg-white/50 dark:bg-gray-800/50 border-purple-100 dark:border-purple-900/50">
                 <SelectValue placeholder="Select Fertigation Valve" />
               </SelectTrigger>

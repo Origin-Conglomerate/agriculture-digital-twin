@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { ToastAction } from "@/components/ui/toast"
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { Plus, Wrench, HelpCircle } from 'lucide-react'
+import { Plus, Wrench, HelpCircle, Tv, Bot } from 'lucide-react'
 
 
 export default function Dashboard() {
@@ -111,13 +111,14 @@ export default function Dashboard() {
       <div className="fixed bottom-6 right-6 flex gap-3">
         <Link to="/agentic-ai">
         <Button className="rounded-full shadow-lg gap-2 dark:bg-white bg-black hover:bg-blue-700">
-          <Plus className="h-4 w-4" />
-          Agentic AI
+          <Bot className="h-4 w-4" />
+          AI Agent
         </Button>
         </Link>
         <Link to="/log-monitor">
         <Button variant="outline" className="rounded-full shadow-lg">
-          <Wrench className="h-4 w-4" />
+          <Tv className="h-4 w-4" />
+          Log Monitor
         </Button>
         <Button variant="outline" className="rounded-full shadow-lg">
           <HelpCircle className="h-4 w-4" />

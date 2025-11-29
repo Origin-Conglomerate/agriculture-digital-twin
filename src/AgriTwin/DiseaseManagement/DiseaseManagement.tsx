@@ -16,6 +16,7 @@ import {
   RefreshCw, 
   AlertTriangle,
   Camera,
+  Upload,
   FileType,
   Brain,
   Microscope,
@@ -40,7 +41,9 @@ export default function DiseaseManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [alert, setAlert] = useState<{ show: boolean; message: string; variant: 'default' | 'destructive' }>({ show: false, message: '', variant: 'default' });
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(bananaDisease);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
   const [prediction, setPrediction] = useState('');
   const [diseaseDescription, setDiseaseDescription] = useState('');
@@ -67,9 +70,24 @@ export default function DiseaseManagement() {
   }
   const [treatmentTimeline, setTreatmentTimeline] = useState<TreatmentStep[]>([]);
 
-  // Drag and drop handlers remain unchanged
-  const handlePredictClick = () => {
-    handleFile();
+  // Handle file selection from input
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle upload button click in dialog
+  const handleUploadClick = () => {
+    if (uploadedImage) {
+      setShowUploadDialog(false);
+      handleFile();
+    }
   };
 
   // Prediction handler with simulated data
@@ -80,6 +98,9 @@ export default function DiseaseManagement() {
       message: 'Analyzing image with AI...',
       variant: 'default'
     });
+
+    // Set the HARDCODED banana disease image (not the uploaded one)
+    setImagePreview(bananaDisease);
 
     // Simulate upload progress
     for (let progress = 0; progress <= 100; progress += 20) {
@@ -93,7 +114,7 @@ export default function DiseaseManagement() {
     // Hardcoded simulation for Banana Panama disease
     setPrediction("Banana Panama Disease");
     setConfidenceScore(92.5);
-    
+
     setDiseaseDescription("Banana Panama disease is a devastating fungal infection caused by Fusarium oxysporum f.sp. cubense. It affects banana plants, causing wilting, yellowing of leaves, and eventual plant death. This disease is particularly dangerous as it can completely destroy banana crops.");
 
     setPesticideRecommendation({
@@ -137,13 +158,9 @@ export default function DiseaseManagement() {
     setPesticideRecommendation(null);
     setTreatmentTimeline([]);
     setConfidenceScore(null);
+    setImagePreview(null);
+    setUploadedImage(null);
   };
-
-  useEffect(() => {
-    // Pre-load the image
-    const img = new Image();
-    img.src = bananaDisease;
-  }, []);
 
   return (
     <div className="container mx-auto p-4 space-y-8">
@@ -166,25 +183,89 @@ export default function DiseaseManagement() {
         </CardHeader>
 
         <CardContent className="p-4 md:p-6 space-y-6">
-          {!showSolutions && (
+          {!showSolutions && !showUploadDialog && (
             <div className="flex flex-col items-center space-y-4">
-              <div className="aspect-square w-full max-w-md bg-green-50/50 dark:bg-blue-900/20 rounded-xl overflow-hidden shadow-inner">
-                <img
-                  src={imagePreview}
-                  alt="Plant Disease Analysis"
-                  className="w-full h-full object-cover rounded-xl transform transition-transform hover:scale-105"
-                />
+              <div className="aspect-square w-full max-w-md bg-green-50/50 dark:bg-blue-900/20 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center text-green-600/60 dark:text-blue-400/60 space-y-3">
+                  <CloudUpload className="h-16 w-16" />
+                  <p className="text-sm font-medium">Upload Plant Image for Analysis</p>
+                </div>
               </div>
               <Button
                 variant="outline"
                 size="lg"
                 className="w-full md:w-auto mt-4 bg-green-100/80 hover:bg-green-200/80 dark:bg-blue-900/40 dark:hover:bg-blue-800/40 border-green-300 dark:border-blue-700 text-green-900 dark:text-blue-200"
-                onClick={handlePredictClick}
+                onClick={() => setShowUploadDialog(true)}
+                disabled={loading}
               >
-                <Brain className="h-5 w-5 mr-2" />
-                Start AI Analysis
+                <CloudUpload className="h-5 w-5 mr-2" />
+                Upload Image
               </Button>
             </div>
+          )}
+
+          {!showSolutions && showUploadDialog && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-4"
+            >
+              <Card className="p-6 bg-white/90 dark:bg-gray-800/90">
+                <h3 className="text-lg font-semibold text-green-900 dark:text-blue-200 mb-4">
+                  Upload Plant Image
+                </h3>
+                <div className="space-y-4">
+                  <div className="border-2 border-dashed border-green-300 dark:border-blue-700 rounded-lg p-8 text-center">
+                    {uploadedImage ? (
+                      <div className="space-y-3">
+                        <img
+                          src={uploadedImage}
+                          alt="Uploaded preview"
+                          className="max-h-64 mx-auto rounded-lg"
+                        />
+                        <p className="text-sm text-green-600 dark:text-blue-300">Image ready to analyze</p>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <CloudUpload className="h-12 w-12 mx-auto mb-3 text-green-600 dark:text-blue-400" />
+                        <p className="text-green-800 dark:text-blue-200 font-medium">
+                          Click to select image
+                        </p>
+                        <p className="text-sm text-green-600 dark:text-blue-300 mt-1">
+                          PNG, JPG up to 10MB
+                        </p>
+                      </label>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowUploadDialog(false);
+                        setUploadedImage(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+                      onClick={handleUploadClick}
+                      disabled={!uploadedImage}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload & Analyze
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
           )}
 
           {loading && (

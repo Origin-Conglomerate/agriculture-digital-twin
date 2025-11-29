@@ -422,7 +422,7 @@ export default function Reports() {
           <div className="space-y-2">
             <h1 className="text-4xl font-bold">
               <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Farm Sensors Report - 04
+                Farm Sensors Report
               </span>
             </h1>
             <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">

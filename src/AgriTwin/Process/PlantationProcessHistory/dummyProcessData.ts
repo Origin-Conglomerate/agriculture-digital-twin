@@ -4,6 +4,7 @@ import fertilizerApp from "@/assets/PlantationProcessHistory/week3-fertilizer.jp
 import transplanting from "@/assets/PlantationProcessHistory/week4-transplanting.jpg";
 import fertigation from "@/assets/PlantationProcessHistory/week5-fertigation.jpg";
 import intercrop from "@/assets/PlantationProcessHistory/week7-intercrop.jpg";
+import intercropvideo from "@/assets/PlantationProcessHistory/intercrop-video.mp4";
 
 export interface Media {
   sasUrl: string;

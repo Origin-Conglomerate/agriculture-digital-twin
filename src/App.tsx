@@ -8,16 +8,12 @@ import PlantationProcessHistory from './AgriTwin/Process/PlantationProcessHistor
 import LogProcess from './AgriTwin/Process/LogProcess/LogProcess';
 import IrrigationSchedule from './AgriTwin/Irrigation/IrrigationSchedule/IrrigationSchedule';
 import IrrigationHistoricalData from './AgriTwin/Irrigation/IrrigationHistoricalData/IrrigationHistoricalData';
-import SoilHistory04 from './AgriTwin/History/04/SoilHistory04';
-import SoilHistory05 from './AgriTwin/History/05/SoilHistory05';
-import WeatherHistory04 from './AgriTwin/History/04/WeatherHistory04';
-import WeatherHistory05 from './AgriTwin/History/05/WeatherHistory05';
-import EnvironmentHistory04 from './AgriTwin/History/04/EnvironmentHistory04';
-import EnvironmentHistory05 from './AgriTwin/History/05/EnvironmentHistory05';
+import DiseaseManagement from './AgriTwin/DiseaseManagement/DiseaseManagement';
+
+import SoilHistory from './AgriTwin/History/SoilHistory';
+import WeatherHistory from './AgriTwin/History/WeatherHistory';
+import EnvironmentHistory from './AgriTwin/History/EnvironmentHistory';
 import WeatherForecast from './AgriTwin/WeatherForecast/WeatherForecast';
-import DiseaseManagement from './AgriTwin/DiseaseManagement/DiseaseManagement'
-import Reports04 from './AgriTwin/Reports/Reports';
-import Reports05 from './AgriTwin/Reports/Reports05';
 
 import ProjectManagement from './AgriTwin/ProjectManagement/ProjectManagement';
 
@@ -54,6 +50,7 @@ import Reports from './AgriTwin/Reports/Reports';
 import Livestock from './AgriTwin/Livestock/Livestock';
 import AgenticAI from './AgriTwin/AgenticAI/AgenticAI';
 import LogMonitor from './AgriTwin/LogMonitor/LogMonitor';
+import SatelliteImagery from './AgriTwin/SatelliteImagery/SatelliteImagery';
 
 
 
@@ -92,6 +89,12 @@ const App = () => {
           <Route path="expendituremgmt" element={<ExpenditureManagement />} />
           <Route path="inventorymgmt" element={<InventoryManagement />} />
           <Route path="labourmgmt" element={<LabourManagement />} /> 
+
+          <Route path="soilhistory" element={<SoilHistory />} />
+          <Route path="weatherhistory" element={<WeatherHistory />} />
+          <Route path="environmenthistory" element={<EnvironmentHistory />} />
+
+          <Route path="satelliteimagery" element={<SatelliteImagery />} />
 
           <Route path="landscape" element={<LandScape />} />
           <Route path="projectmanagement" element={<ProjectManagement />} />

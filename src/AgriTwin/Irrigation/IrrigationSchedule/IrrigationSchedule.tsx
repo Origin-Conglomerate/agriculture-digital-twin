@@ -9,22 +9,24 @@ import FertigationScheduling from './FertigationScheduling';
 
 const IrrigationSchedule: React.FC = () => {
   return (
-    <div className="container mx-auto p-4">
-      {/* < variant="h2" color="blue-gray" className="mb-4">
-        Irrigation and Fertigation Module
-      </Typography> */}
+    <div className="container mx-auto p-4 space-y-6">
+      {/* Row 1: Three equal height cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* <div className="lg:col-span-2">
-          <ThreeDPlotMap />
-        </div> */}
-        <div className="lg:col-span-1">
+        <div className="h-full">
           <IoTSensorReadings />
         </div>
-        <div className="lg:col-span-1">
+        <div className="h-full">
           <ControlPanel />
         </div>
-        <div className="lg:col-span-1">
+        <div className="h-full">
           <AIInsights />
+        </div>
+      </div>
+
+      {/* Row 2: Full width components */}
+      <div className="grid grid-cols-1 lg:grid-cols-1">
+        <div className="h-full w-full">
+          <FertigationScheduling />
         </div>
       </div>
     </div>
